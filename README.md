@@ -1,4 +1,6 @@
 # LineUp - Mojah Web Consulting
+Består af Mikkel Ruby, Omar Gaal, Anders Flæng, Hani Zaghmout og Jimmi Larsen(Saliandros)
+Det er en kopi af LineUp - [Klik her for at komme til orginalen](https://github.com/eaaa-dob-wu-e25a/sem-proj-mojah-web-consulting), men jeg har valgt at lave mit eget for at få bedre forståelse af projektet.
 
 ## Om projektet
 
