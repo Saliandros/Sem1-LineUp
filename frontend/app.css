@@ -1,0 +1,417 @@
+@import "tailwindcss";
+
+@theme {
+  /*===============================================
+  =          Prikmary colors           =
+  ===============================================*/
+
+  --color-primary-yellow: #ffcf70;
+  --color-primary-purple: #4d3f54;
+
+  /*===============================================
+  =          Neutral colors           =
+  ===============================================*/
+
+  --color-neutral-black: #1e1e1e;
+  --color-neutral-white: #fffff;
+  --color-neutral-light-gray: #f7f6f6;
+  --color-neutral-grey: #555555;
+  --color-neutral-clacier: #ededed;
+  --color-neutral-border: #d1d5db;
+  --color-neutral-medium-gray: #6b7280;
+  --color-neutral-dark-gray: #4b5563;
+  --color-neutral-light-border: #e5e7eb;
+  --color-neutral-light-bg: #f9fafb;
+
+  /*===============================================
+  =          Secondary colors           =
+  ===============================================*/
+
+  --color-secondary-dark-grey: #575252;
+  --color-secondary-cyan: #3f4d54;
+  --color-secondary-dark-blue: #3f4254;
+  --color-secondary-dark-red: #543f40;
+  --color-secondary-dark-orange: #5d4c43;
+  --color-secondary-slate: #484f59;
+  --color-secondary-charcoal: #3c434c;
+  --color-secondary-gradient-light: #6c727c;
+  --color-secondary-gradient-dark: #464c55;
+  --color-secondary-border-gray: #858b94;
+
+  /*===============================================
+  =          Accent colors           =
+  ===============================================*/
+
+  --color-accent-maroon: #800000;
+  --color-accent-aquamarine: #40826d;
+
+  /*===============================================
+  =          Typografi           =
+  ===============================================*/
+
+  --primary-font: "Helvetica Now Display", Helvetica, Arial, sans-serif;
+  --heading-large: 24px;
+  --heading-medium: 20px;
+  --heading-small: 18px;
+  --body-text: 16px;
+
+  /*===============================================
+  =          Text colors           =
+  ===============================================*/
+
+  /* Placeholder */
+  --color-text-placeholder: #a0a0a0;
+  --color-input-background: #f1f1f1;
+
+  /*===============================================
+  =          Input           =
+  ===============================================*/
+
+  --color-input-background: #f1f1f1;
+
+  /*===============================================
+  =          Navbar           =
+  ===============================================*/
+
+  --color-background-nav: rgba(30, 30, 30, 0.98);
+  --color-active-link: rgba(255, 255, 255, 0.1);
+}
+
+/*===============================================
+=          Color Themes           =
+===============================================*/
+
+* {
+  font-family: var(--primary-font);
+}
+
+:root {
+  --color-theme: rgba(30, 30, 30, 1);
+}
+
+.theme-grey {
+  --color-theme: rgba(87, 82, 82, 1);
+}
+
+.theme-green {
+  --color-theme: rgba(63, 77, 84, 1);
+}
+
+.theme-blue {
+  --color-theme: rgba(63, 66, 84, 1);
+}
+
+.theme-purple {
+  --color-theme: rgba(77, 63, 84, 1);
+}
+
+.theme-red {
+  --color-theme: rgba(84, 63, 64, 1);
+}
+
+.theme-brown {
+  --color-theme: rgba(93, 76, 67, 1);
+}
+
+h1 {
+  font-size: var(--heading-large);
+}
+
+h2 {
+  font-size: var(--heading-medium);
+}
+
+h3 {
+  font-size: var(--heading-small);
+}
+
+p {
+  font-size: var(--body-text);
+}
+
+body {
+  padding-bottom: 100px;
+  background-color: var(--color-neutral-light-gray);
+}
+
+button {
+  cursor: pointer;
+}
+
+input {
+  color: black;
+
+  &::placeholder {
+    color: var(--color-text-placeholder);
+  }
+}
+
+body {
+  padding-bottom: 100px;
+  background: var(--color-neutral-light-gray);
+}
+
+@keyframes logo-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.logo-pulse {
+  animation: logo-pulse 2s ease-in-out infinite;
+}
+
+.loading-screen {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(0, 0, 0, 0.1)
+  );
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+.loading-screen--exit {
+  animation: loading-slide-left 0.6s ease forwards;
+}
+
+@keyframes loading-slide-left {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+/*===============================================
+=          Primary button           =
+===============================================*/
+
+.primary-btn {
+  filter: brightness(100%);
+  transition: 0.3s ease-in-out;
+  background-color: var(--color-primary-yellow);
+  color: #000;
+
+  &:hover {
+    filter: brightness(95%);
+  }
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: non;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+/*===============================================
+  =          Navbar           =
+  ===============================================*/
+
+.navbar-links {
+  a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 1;
+  }
+
+  svg {
+    width: 24px;
+    height: auto;
+  }
+
+  span {
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 100%;
+    letter-spacing: 0.5px;
+  }
+
+  a.active {
+    position: relative;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.15),
+      rgba(255, 255, 255, 0.05)
+    );
+    backdrop-filter: blur(10px);
+    color: white;
+    cursor: pointer;
+    box-shadow:
+      0 4px 15px rgba(0, 0, 0, 0.2),
+      inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--color-active-link);
+      z-index: -1;
+      border-radius: 50px;
+    }
+
+    svg {
+      path,
+      circle {
+        stroke: var(--color-primary-yellow);
+      }
+    }
+  }
+}
+
+@keyframes loading-slide-left {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes logo-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes growCircle {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOpacity {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideTransformX {
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes slideTransformY {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  transform: translate(100%);
+  animation: slideTransformX 0.3s ease-out forwards;
+}
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(100%);
+  animation:
+    slideTransformY 0.2s ease-out forwards calc(var(--delay) + 100ms),
+    fadeOpacity 0.4s ease-out forwards calc(var(--delay) + 150ms);
+}
+
+.fade-up-fast {
+  opacity: 0;
+  animation: fadeOpacity 0.4s ease-out forwards;
+}
+
+/*===============================================
+=          Switch button           =
+===============================================*/
+
+.react-switch-checkbox {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+}
+
+.react-switch-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  width: 50px;
+  height: 25px;
+  background: var(--color-zinc-300);
+  border-radius: 100px;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.react-switch-label .react-switch-button {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 45px;
+  transition: 0.2s;
+  background: #fff;
+  box-shadow: 0 0 2px 0 rgba(10, 10, 10, 0.29);
+}
+
+.checkbox-on {
+  background-color: var(--color-primary-yellow);
+}
+
+.react-switch-checkbox:checked + .react-switch-label .react-switch-button {
+  left: calc(100% - 2px);
+  transform: translateX(-100%);
+}
+
+.react-switch-label:active .react-switch-button {
+  width: 20px;
+}
+
+@media (min-width: 1025px) {
+  .navbar-links {
+    a.active {
+      border-radius: 16px;
+      &::after {
+        border-radius: 16px;
+      }
+    }
+  }
+}

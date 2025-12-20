@@ -1,0 +1,35 @@
+# --- NODE / EXPRESS ---
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# --- LOG FILES ---
+*.log
+logs/
+*.out
+*.err
+
+# --- OS FILES ---
+.DS_Store
+Thumbs.db
+
+# --- EDITOR FILES ---
+.vscode/
+.idea/
+
+# --- SUPABASE ---
+supabase/.temp/
+supabase/.branches/
+
+# --- OTHER TEMP FILES ---
+temp/
+tmp/
+
+# --- Coverage / Testing ---
+coverage/
+*.lcov
