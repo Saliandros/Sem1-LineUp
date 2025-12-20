@@ -1,0 +1,114 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.collab_creation (
+  collab_id uuid NOT NULL,
+  user_id uuid,
+  collab_image text,
+  collab_desc text,
+  collab_genres text,
+  collab_location text,
+  collab_paid boolean,
+  created_at timestamp without time zone,
+  CONSTRAINT collab_creation_pkey PRIMARY KEY (collab_id),
+  CONSTRAINT collab_creation_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.connections (
+  connection_id uuid NOT NULL,
+  user_id_1 uuid,
+  user_id_2 uuid,
+  created_at timestamp without time zone,
+  CONSTRAINT connections_pkey PRIMARY KEY (connection_id),
+  CONSTRAINT connections_user_id_1_fkey FOREIGN KEY (user_id_1) REFERENCES public.profiles(id),
+  CONSTRAINT connections_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.genre_collab_join (
+  collab_id uuid NOT NULL,
+  genre_id uuid NOT NULL,
+  CONSTRAINT genre_collab_join_pkey PRIMARY KEY (collab_id, genre_id),
+  CONSTRAINT genre_collab_join_collab_id_fkey FOREIGN KEY (collab_id) REFERENCES public.collab_creation(collab_id),
+  CONSTRAINT genre_collab_join_genre_id_fkey FOREIGN KEY (genre_id) REFERENCES public.genres(genre_id)
+);
+CREATE TABLE public.genres (
+  genre_id uuid NOT NULL,
+  genre_name character varying,
+  CONSTRAINT genres_pkey PRIMARY KEY (genre_id)
+);
+CREATE TABLE public.messages (
+  message_id uuid NOT NULL,
+  thread_id uuid,
+  user_id uuid,
+  message_content text,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  is_deleted boolean DEFAULT false,
+  CONSTRAINT messages_pkey PRIMARY KEY (message_id),
+  CONSTRAINT messages_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.threads(thread_id) ON DELETE CASCADE,
+  CONSTRAINT messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.post_note (
+  post_id uuid NOT NULL,
+  user_id uuid,
+  post_title text,
+  post_image text,
+  post_desc text,
+  post_tags text,
+  created_at timestamp without time zone,
+  CONSTRAINT post_note_pkey PRIMARY KEY (post_id),
+  CONSTRAINT post_note_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  user_bio text,
+  user_desc text,
+  user_interest text,
+  user_genre text,
+  user_theme character varying,
+  user_social jsonb,
+  user_artist text,
+  user_music text,
+  user_image text,
+  user_type text,
+  user_phone text,
+  country_code text,
+  birth_date date,
+  city text,
+  interests text,
+  displayname text,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  email text,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.tags (
+  tag_name character varying NOT NULL,
+  CONSTRAINT tags_pkey PRIMARY KEY (tag_name)
+);
+CREATE TABLE public.tags_post_join (
+  post_id uuid NOT NULL,
+  tag_name character varying NOT NULL,
+  CONSTRAINT tags_post_join_pkey PRIMARY KEY (post_id, tag_name),
+  CONSTRAINT tags_post_join_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.post_note(post_id),
+  CONSTRAINT tags_post_join_tag_name_fkey FOREIGN KEY (tag_name) REFERENCES public.tags(tag_name)
+);
+CREATE TABLE public.thread_participants (
+  thread_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role character varying(20) DEFAULT 'member',
+  joined_at timestamp without time zone DEFAULT now(),
+  last_read_at timestamp without time zone,
+  CONSTRAINT thread_participants_pkey PRIMARY KEY (thread_id, user_id),
+  CONSTRAINT thread_participants_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.threads(thread_id) ON DELETE CASCADE,
+  CONSTRAINT thread_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.threads (
+  thread_id uuid NOT NULL,
+  thread_name text,
+  thread_type character varying(20) DEFAULT 'direct',
+  created_by_user_id uuid,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone,
+  CONSTRAINT threads_pkey PRIMARY KEY (thread_id),
+  CONSTRAINT threads_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.profiles(id)
+);
