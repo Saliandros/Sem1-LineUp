@@ -44,6 +44,8 @@ export default function GetStarted() {
   const [onboardingStep, setOnboardingStep] = useState(0); // 0 = carousel, 1 = sign up, 2 = next step, etc.
   const [showLoading, setShowLoading] = useState(false); // Loading state for final redirect
 
+  const [email, setEmail] = useState(""); // Email from SignupForm
+  const [password, setPassword] = useState(""); // Password from SignupForm
   const [userType, setUserType] = useState(null); // 'musician' or 'service-provider'
   const [userInfo, setUserInfo] = useState({ name: "" }); // User information state
   const [selectedInterests, setSelectedInterests] = useState([]); // Interests state
@@ -82,13 +84,12 @@ export default function GetStarted() {
 
           const result = await updateProfile({
             user_type: userType,
-            username: userInfo.name?.split(' ')[0] || 'user', // Use first name as username
-            full_name: userInfo.name || '', // Store full name in dedicated field
+            displayname: userInfo.name || '', // Store full name (first + last name with space)
             user_phone: userInfo.phone,
             birth_date: userInfo.birthDate,
             city: userInfo.city,
             country_code: userInfo.countryCode || '+45',
-            interests: selectedInterests.length > 0 ? selectedInterests : null,
+            interests: selectedInterests.join(', '), // Convert array to string
           });
           
           console.log("✅ Onboarding data saved successfully:", result);
@@ -99,13 +100,6 @@ export default function GetStarted() {
       };
 
       saveOnboardingData();
-
-      // Persist onboarding completion flag
-      try {
-        window.localStorage.setItem("onboarding_complete", "true");
-      } catch (e) {
-        console.warn("Failed to persist onboarding completion", e);
-      }
 
       const timer = setTimeout(() => {
         // Redirect to root since home is served at '/'
@@ -199,7 +193,12 @@ export default function GetStarted() {
           <div className="flex items-center justify-center min-h-screen px-4 pt-24">
             <div className="w-full max-w-md pb-8">
               <SignupForm
-                onSuccess={() => setOnboardingStep(2)}
+                onContinue={(email, password) => {
+                  console.log("🟢 GetStarted: Credentials collected, moving to step 2");
+                  setEmail(email);
+                  setPassword(password);
+                  setOnboardingStep(2);
+                }}
               />
             </div>
           </div>
@@ -299,6 +298,11 @@ export default function GetStarted() {
           <div className="flex items-center justify-center min-h-screen px-4 pt-32">
             <div className="w-full max-w-md pb-8">
               <Subscription
+                email={email}
+                password={password}
+                userType={userType}
+                userInfo={userInfo}
+                selectedInterests={selectedInterests}
                 onStartTrial={(plan) => {
                   setSelectedSubscription(plan);
                   setShowLoading(true);

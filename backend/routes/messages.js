@@ -31,8 +31,8 @@ router.get("/:messageId", authenticate, async (req, res) => {
 
     const { data, error } = await supabase
       .from("messages")
-      .select("*, profiles!messages_thread_id_fkey(id, username, user_image)")
-      .eq("id", messageId)
+      .select("*, profiles!messages_user_id_fkey(id, displayname, user_image)")
+      .eq("message_id", messageId)
       .single();
 
     if (error) {
@@ -61,18 +61,15 @@ router.post("/", authenticate, async (req, res) => {
         .json({ error: "thread_id and message_content are required" });
     }
 
-    // Verify user is part of the thread
-    const { data: thread } = await supabase
-      .from("threads")
-      .select("user_id, user_id_1")
+    // Verify user is part of the thread via thread_participants
+    const { data: participant, error: participantError } = await supabase
+      .from("thread_participants")
+      .select("user_id")
       .eq("thread_id", thread_id)
+      .eq("user_id", userId)
       .single();
 
-    if (!thread) {
-      return res.status(404).json({ error: "Thread not found" });
-    }
-
-    if (thread.user_id !== userId && thread.user_id_1 !== userId) {
+    if (participantError || !participant) {
       return res
         .status(403)
         .json({ error: "Unauthorized - not part of this thread" });
@@ -80,6 +77,7 @@ router.post("/", authenticate, async (req, res) => {
 
     const messageData = {
       thread_id,
+      user_id: userId,
       message_content,
       created_at: new Date().toISOString(),
     };
@@ -117,13 +115,21 @@ router.put("/:messageId", authenticate, async (req, res) => {
       return res.status(400).json({ error: "message_content is required" });
     }
 
-    // Note: Add ownership check here if needed
-    // For now, any authenticated user can update
+    // Check ownership
+    const { data: message } = await supabase
+      .from("messages")
+      .select("user_id")
+      .eq("message_id", messageId)
+      .single();
+
+    if (!message || message.user_id !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
 
     const { data, error } = await supabase
       .from("messages")
-      .update({ message_content })
-      .eq("id", messageId)
+      .update({ message_content, updated_at: new Date().toISOString() })
+      .eq("message_id", messageId)
       .select("*")
       .single();
 
@@ -141,12 +147,21 @@ router.delete("/:messageId", authenticate, async (req, res) => {
   try {
     const { messageId } = req.params;
 
-    // Note: Add ownership check here if needed
+    // Check ownership
+    const { data: message } = await supabase
+      .from("messages")
+      .select("user_id")
+      .eq("message_id", messageId)
+      .single();
+
+    if (!message || message.user_id !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
 
     const { error } = await supabase
       .from("messages")
       .delete()
-      .eq("id", messageId);
+      .eq("message_id", messageId);
 
     if (error) throw error;
 

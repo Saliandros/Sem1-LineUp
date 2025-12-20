@@ -9,6 +9,7 @@ import {
 import { fetchMessages, transformMessages } from "../data/messages.js";
 import { sendMessage, getOrCreateThread, getThread } from "../data/messages.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import { supabase } from "../lib/supabaseClient.js";
 
 // Simple friend item for selection (without last message)
 function SelectableFriendItem({ friend, isSelected, onToggle }) {
@@ -150,31 +151,14 @@ export async function loader({ params }) {
 export default function OneToOneChatPage() {
   const { thread, threadId, chatId, initialMessages } = useLoaderData();
   const { user } = useAuth();
-  const [userProfile, setUserProfile] = useState(null);
-
-  // Hent user profile data
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        console.log("🔍 User profile from DB:", profile);
-        setUserProfile(profile);
-      }
-    };
-
-    fetchUserProfile();
-  }, [user?.id]);
 
   const [showAddPeopleModal, setShowAddPeopleModal] = useState(false);
   const [rawMessages, setRawMessages] = useState(initialMessages || []);
   const [isLoading, setIsLoading] = useState(false);
   const [friends, setFriends] = useState([]);
   const [availableFriends, setAvailableFriends] = useState([]);
+  const [otherUserId, setOtherUserId] = useState(null);
+  const [otherUser, setOtherUser] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Hent venner når komponenten loader
@@ -192,11 +176,42 @@ export default function OneToOneChatPage() {
     loadFriends();
   }, []);
 
-  // Find den anden bruger i threaden
-  const otherUserId =
-    thread.user_id === user?.id ? thread.user_id_1 : thread.user_id;
-  const otherUser = friends.find((f) => f.id === otherUserId);
-  const friendName = otherUser?.title || "Unknown";
+  // Hent thread participants for at finde den anden bruger
+  useEffect(() => {
+    const loadOtherUser = async () => {
+      if (!threadId || !user?.id) return;
+
+      try {
+        const { data: participants, error } = await supabase
+          .from("thread_participants")
+          .select("user_id, profiles(id, displayname, user_image)")
+          .eq("thread_id", threadId);
+
+        if (error) throw error;
+
+        // Find den anden bruger (ikke den nuværende bruger)
+        const otherParticipant = participants?.find(p => p.user_id !== user.id);
+        if (otherParticipant) {
+          setOtherUserId(otherParticipant.user_id);
+          // Find friend data
+          const friendData = friends.find(f => f.id === otherParticipant.user_id);
+          setOtherUser(friendData || {
+            id: otherParticipant.user_id,
+            title: otherParticipant.profiles?.displayname || "Unknown",
+            user_image: otherParticipant.profiles?.user_image,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading thread participants:", error);
+      }
+    };
+
+    if (friends.length > 0) {
+      loadOtherUser();
+    }
+  }, [threadId, user?.id, friends]);
+
+  const friendName = otherUser?.title || otherUser?.displayname || "Unknown";
   const friendAvatar =
     otherUser?.user_image ||
     otherUser?.avatar ||

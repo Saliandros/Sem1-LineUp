@@ -5,6 +5,7 @@ import ChatListItem from "../components/ChatListItem.jsx";
 import { getUserThreads, deleteThread } from "../data/messages.js";
 import { fetchAllUsersAsFriends } from "../data/friends.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import { supabase } from "../lib/supabaseClient.js";
 
 export async function loader() {
   // Denne loader kræver auth context - vi henter det gennem useAuth i komponenten
@@ -31,17 +32,33 @@ export default function ChatListRoute() {
         const threads = await getUserThreads(user.id);
         const allUsersAsFriends = await fetchAllUsersAsFriends();
 
-        // Konverter threads til chat format - brug profile data direkte
-        const chats = threads.map((thread) => {
-          const otherUserId =
-            thread.user_id === user.id ? thread.user_id_1 : thread.user_id;
+        // For hver thread, hent participants for at finde den anden bruger
+        const chatsPromises = threads.map(async (thread) => {
+          // Hent participants for denne thread
+          const { data: participants, error } = await supabase
+            .from("thread_participants")
+            .select("user_id")
+            .eq("thread_id", thread.thread_id);
+
+          if (error) {
+            console.error("Error fetching participants:", error);
+            return null;
+          }
+
+          // Find den anden bruger (ikke den nuværende bruger)
+          const otherUserId = participants
+            ?.map(p => p.user_id)
+            .find(id => id !== user.id);
+
+          if (!otherUserId) return null;
+
           const friendData = allUsersAsFriends.find(
             (f) => f.id === otherUserId
           );
 
           return {
             id: thread.thread_id,
-            title: friendData?.title || "Unknown",
+            title: friendData?.title || friendData?.displayname || "Unknown",
             avatar: friendData?.user_image || friendData?.avatar,
             currentUser: {
               id: user.id,
@@ -50,6 +67,8 @@ export default function ChatListRoute() {
             },
           };
         });
+
+        const chats = (await Promise.all(chatsPromises)).filter(Boolean);
 
         setActiveChats(chats);
         setAllFriends(allUsersAsFriends);

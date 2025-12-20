@@ -88,7 +88,7 @@ export default function FriendsList({
 
             {/* Name */}
             <div className="text-[13px] text-gray-900 text-center w-fit font-medium leading-tight">
-              {friend.title.split(" ").map((namePart, index) => (
+              {(friend.title || 'Unknown').split(" ").map((namePart, index) => (
                 <div key={index} className="truncate">
                   {namePart}
                 </div>

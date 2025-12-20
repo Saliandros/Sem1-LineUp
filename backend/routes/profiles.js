@@ -78,6 +78,7 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
   try {
     const userId = req.user.id;
     const {
+      displayname,
       username,
       full_name,
       user_bio,
@@ -96,13 +97,14 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
       user_phone,
       password_hash,
       user_type,
+      email,
     } = req.body;
 
     let imageUrl = user_image; // Default to the provided URL
 
     // Handle file upload if present
     if (req.file) {
-      const bucket = process.env.SUPABASE_BUCKET || "post-images";
+      const bucket = process.env.SUPABASE_BUCKET || "post-image";
       const filename = `profiles/${userId}/${Date.now()}_${
         req.file.originalname
       }`;
@@ -140,6 +142,7 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
 
     const profileData = {
       id: userId,
+      displayname,
       username,
       full_name,
       user_bio,
@@ -158,6 +161,7 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
       user_phone,
       password_hash,
       user_type,
+      email,
       updated_at: new Date().toISOString(),
     };
 

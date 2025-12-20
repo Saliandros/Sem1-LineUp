@@ -13,7 +13,7 @@ export default function ProfileHeader({ profileData }) {
   console.log(profileData);
 
   // Display full name if it exists (new users), otherwise show username (old users)
-  const displayName = profileData?.username || profileData?.full_name || "User";
+  const displayName = profileData?.username || profileData?.displayname || "User";
   const userImage = profileData?.user_image || "";
   const userBio =
     profileData?.user_bio || profileData?.user_desc || "No bio yet";

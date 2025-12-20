@@ -4,10 +4,10 @@ import { useAuth } from "../../contexts/AuthContext";
 
 /**
  * SignupForm.jsx
- * Handles account creation input & validation.
- * Manages form state, validation, and integrates with auth context.
+ * Handles email and password collection for account creation.
+ * Account is NOT created here - only credentials are collected.
  * Props:
- *  onSuccess -> callback when signup completes successfully
+ *  onContinue(email, password) -> callback with credentials when user clicks continue
  */
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -21,8 +21,7 @@ const isValidPassword = (password) => passwordValidation.minLength(password);
 const passwordsMatch = (password, repeatPassword) =>
   password === repeatPassword && repeatPassword.length > 0;
 
-export function SignupForm({ onSuccess }) {
-  const { signUp } = useAuth();
+export function SignupForm({ onContinue }) {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -32,20 +31,11 @@ export function SignupForm({ onSuccess }) {
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [repeatPasswordTouched, setRepeatPasswordTouched] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
 
-  const handleSignup = async () => {
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      await signUp(email, password);
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      setError(err.message || "Failed to create account. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleContinue = () => {
+    console.log("🔵 SignupForm: Collecting credentials");
+    if (onContinue) onContinue(email, password);
+    console.log("✅ SignupForm: Credentials passed to parent");
   }
   return (
     <>
@@ -197,11 +187,10 @@ export function SignupForm({ onSuccess }) {
               isValidPassword(password) &&
               passwordsMatch(password, repeatPassword)
             ) {
-              handleSignup();
+              handleContinue();
             }
           }}
           disabled={
-            isSubmitting ||
             !(
               isValidEmail(email) &&
               isValidPassword(password) &&
@@ -210,13 +199,8 @@ export function SignupForm({ onSuccess }) {
           }
           className="w-full py-3 mt-2 font-semibold text-gray-800 transition rounded-full bg-primary-yellow hover:opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Creating account..." : "Continue"}
+          Continue
         </button>
-        {error && (
-          <div className="p-3 mt-4 border border-red-200 rounded-lg bg-red-50">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
       </form>
 
       <div className="my-6 text-sm text-center text-gray-500">or</div>

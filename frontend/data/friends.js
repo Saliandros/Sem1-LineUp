@@ -69,10 +69,10 @@ export async function fetchAllUsersAsFriends() {
 
     return (profiles || []).map((profile) => ({
       id: profile.id,
-      title: profile.username,
+      title: profile.displayname || profile.username || profile.email?.split('@')[0] || 'Unknown',
       avatar: profile.user_image,
       user_image: profile.user_image,
-      username: profile.username,
+      username: profile.username || profile.displayname,
     }));
   } catch (error) {
     console.error("Error fetching users:", error);

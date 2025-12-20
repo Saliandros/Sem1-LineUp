@@ -130,8 +130,37 @@ Create a new user account.
 ### Get Thread by ID
 **GET** `/api/threads/:threadId`
 
+Returns thread with participants.
+
+**Response:**
+```json
+{
+  "thread": {
+    "thread_id": "uuid",
+    "thread_name": "Optional group name",
+    "thread_type": "direct",
+    "created_by_user_id": "uuid",
+    "created_at": "...",
+    "participants": [
+      {
+        "user_id": "uuid",
+        "role": "member",
+        "joined_at": "...",
+        "profiles": {
+          "id": "uuid",
+          "displayname": "John Doe",
+          "user_image": "https://..."
+        }
+      }
+    ]
+  }
+}
+```
+
 ### Get Threads by User
 **GET** `/api/threads/user/:userId`
+
+Returns all threads where the user is a participant.
 
 ### Create Thread
 **POST** `/api/threads`
@@ -140,13 +169,22 @@ Create a new user account.
 **Body:**
 ```json
 {
-  "user_id_1": "uuid-of-other-user"
+  "participant_ids": ["uuid-of-user-2", "uuid-of-user-3"],
+  "thread_name": "Optional group name",
+  "thread_type": "direct"
 }
 ```
 
+**Notes:**
+- `participant_ids` should be an array of user IDs (excluding the creator)
+- For 1-to-1 chat: pass array with 1 user ID
+- For group chat: pass array with 2+ user IDs
+- `thread_type` defaults to "direct" for 1 participant, "group" for multiple
+
 ### Delete Thread
 **DELETE** `/api/threads/:threadId`
-- Requires authentication (owner only)
+- Requires authentication (creator only)
+- Cascades to delete messages and participants
 
 ---
 

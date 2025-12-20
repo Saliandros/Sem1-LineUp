@@ -130,8 +130,15 @@ p {
 }
 
 body {
-  padding-bottom: 100px;
+  margin: 0;
+  padding: 0;
   background-color: var(--color-neutral-light-gray);
+  overflow-x: hidden;
+}
+
+/* Add padding for pages with navbar */
+.with-navbar {
+  padding-bottom: 100px;
 }
 
 button {
@@ -144,11 +151,6 @@ input {
   &::placeholder {
     color: var(--color-text-placeholder);
   }
-}
-
-body {
-  padding-bottom: 100px;
-  background: var(--color-neutral-light-gray);
 }
 
 @keyframes logo-pulse {

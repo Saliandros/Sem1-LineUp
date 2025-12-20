@@ -21,14 +21,14 @@ router.get("/", optionalAuth, async (req, res) => {
   }
 });
 
-// Get thread by ID
+// Get thread by ID with participants
 router.get("/:threadId", optionalAuth, async (req, res) => {
   try {
     const { threadId } = req.params;
 
-    const { data, error } = await supabase
+    const { data: thread, error } = await supabase
       .from("threads")
-      .select("*, profiles!threads_user_id_fkey(id, username, user_image)")
+      .select("*")
       .eq("thread_id", threadId)
       .single();
 
@@ -39,7 +39,20 @@ router.get("/:threadId", optionalAuth, async (req, res) => {
       throw error;
     }
 
-    res.json({ thread: data });
+    // Get participants
+    const { data: participants, error: participantsError } = await supabase
+      .from("thread_participants")
+      .select("user_id, role, joined_at, profiles(id, displayname, user_image)")
+      .eq("thread_id", threadId);
+
+    if (participantsError) throw participantsError;
+
+    res.json({ 
+      thread: { 
+        ...thread, 
+        participants: participants || [] 
+      } 
+    });
   } catch (error) {
     console.error("Get thread error:", error);
     res.status(500).json({ error: "Failed to fetch thread" });
@@ -51,38 +64,57 @@ router.get("/user/:userId", optionalAuth, async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const { data, error } = await supabase
-      .from("threads")
-      .select("*, profiles!threads_user_id_fkey(id, username, user_image)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    // Get all threads where user is a participant
+    const { data: participations, error } = await supabase
+      .from("thread_participants")
+      .select("thread_id, role, joined_at")
+      .eq("user_id", userId);
 
     if (error) throw error;
 
-    res.json({ threads: data });
+    if (!participations || participations.length === 0) {
+      return res.json({ threads: [] });
+    }
+
+    // Get thread details
+    const threadIds = participations.map(p => p.thread_id);
+    const { data: threads, error: threadsError } = await supabase
+      .from("threads")
+      .select("*")
+      .in("thread_id", threadIds)
+      .order("created_at", { ascending: false });
+
+    if (threadsError) throw threadsError;
+
+    res.json({ threads: threads || [] });
   } catch (error) {
     console.error("Get user threads error:", error);
     res.status(500).json({ error: "Failed to fetch user threads" });
   }
 });
 
-// Create thread
+// Create thread (1-to-1 or group)
 router.post("/", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { user_id_1 } = req.body;
+    const { participant_ids, thread_name, thread_type } = req.body;
 
-    if (!user_id_1) {
-      return res.status(400).json({ error: "user_id_1 is required" });
+    // participant_ids should be an array of user IDs (excluding creator)
+    if (!participant_ids || !Array.isArray(participant_ids) || participant_ids.length === 0) {
+      return res.status(400).json({ error: "participant_ids array is required" });
     }
 
+    const type = thread_type || (participant_ids.length === 1 ? 'direct' : 'group');
+
+    // Create thread
     const threadData = {
-      user_id: userId,
-      user_id_1,
+      created_by_user_id: userId,
+      thread_type: type,
+      thread_name: thread_name || null,
       created_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
+    const { data: thread, error } = await supabase
       .from("threads")
       .insert(threadData)
       .select("*")
@@ -96,9 +128,33 @@ router.post("/", authenticate, async (req, res) => {
       });
     }
 
+    // Add creator as participant
+    const participantsToAdd = [
+      { thread_id: thread.thread_id, user_id: userId, role: 'member' },
+      ...participant_ids.map(id => ({
+        thread_id: thread.thread_id,
+        user_id: id,
+        role: 'member'
+      }))
+    ];
+
+    const { error: participantsError } = await supabase
+      .from("thread_participants")
+      .insert(participantsToAdd);
+
+    if (participantsError) {
+      console.error("🔴 Add participants error:", participantsError);
+      // Rollback: delete thread if participants couldn't be added
+      await supabase.from("threads").delete().eq("thread_id", thread.thread_id);
+      return res.status(500).json({
+        error: "Failed to add participants",
+        details: participantsError.message,
+      });
+    }
+
     res
       .status(201)
-      .json({ message: "Thread created successfully", thread: data });
+      .json({ message: "Thread created successfully", thread });
   } catch (error) {
     console.error("Create thread error:", error);
     res.status(500).json({ error: "Failed to create thread" });
@@ -110,10 +166,10 @@ router.delete("/:threadId", authenticate, async (req, res) => {
   try {
     const { threadId } = req.params;
 
-    // Check if user owns the thread
+    // Check if user created the thread
     const { data: thread } = await supabase
       .from("threads")
-      .select("user_id")
+      .select("created_by_user_id")
       .eq("thread_id", threadId)
       .single();
 
@@ -121,10 +177,11 @@ router.delete("/:threadId", authenticate, async (req, res) => {
       return res.status(404).json({ error: "Thread not found" });
     }
 
-    if (thread.user_id !== req.user.id) {
+    if (thread.created_by_user_id !== req.user.id) {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
+    // Delete thread (CASCADE will delete messages and participants)
     const { error } = await supabase
       .from("threads")
       .delete()

@@ -1,33 +1,29 @@
-import TagList from "../shared/TagList";
-import SocialMediaLinks from "../shared/SocialMediaLinks";
-import SpotifyEmbed from "../shared/SpotifyEmbed";
-import ReviewSnippet from "../shared/ReviewSnippet";
-import { getCurrentUserProfile } from "../../../lib/api";
+import { MapPin, Phone } from "lucide-react";
 
 /**
  * Basic Info Komponent
- * Viser grundlæggende profil information (name, headline, about, tags, spotify, review, social media)
+ * Viser grundlæggende profil information (name, headline, about, tags, contact)
  * Receives profileData as prop from parent route
  */
 
 export default function BasicInfo({ profileData }) {
-  const aboutMe = profileData?.user_desc || "No description yet.";
-  const lookingFor = profileData?.user_interest || [];
-  const genres = profileData?.user_genre || [];
-  const spotifyUrl = profileData?.user_music || "";
+  const city = profileData?.city || "";
+  const phone = profileData?.user_phone || "";
+  const bio = profileData?.user_bio || "";
+  const aboutMe = profileData?.user_desc || "";
+  
+  // Parse interests from comma-separated string
+  const interests = profileData?.interests 
+    ? profileData.interests.split(',').map(i => i.trim()).filter(Boolean)
+    : [];
 
-  // Social media from jsonb field
-  const socialMedia = profileData?.user_social || {};
-
-  // Artist data
-  const artistData = profileData?.user_artist || "";
-
-  // Default review data (you might want to add these fields to your database)
-  const reviewRating = 5;
-  const reviewCount = 0;
-  const reviewText =
-    "“Freja’s music feels like a late-night conversation you didn’t know you needed — tender, nostalgic, and full of quiet strength. Her sound drifts somewhere between dream and reality, and you can’t help but get lost in it.” – Anna";
-
+  // All available interest options
+  const interestOptions = [
+    "Connect to fellow musicians",
+    "Promote my music",
+    "Find a band to play with",
+    "Find services for my music"
+  ];
 
   // No profile data state
   if (!profileData) {
@@ -39,51 +35,65 @@ export default function BasicInfo({ profileData }) {
   }
 
   return (
-    <div className="space-y-4 text-left text-[14px] text-neutral-black">
-      {/* About me */}
+    <div className="space-y-10 text-left text-[14px] text-neutral-black">
+      {/* Bio */}
       <div>
-        <p className="mb-1 font-semibold text-[15px]">About me</p>
-        <p className="text-[15px] leading-relaxed whitespace-pre-line">
-          {aboutMe}
+        <p className="mb-1 font-semibold text-[15px]">User Bio</p>
+        <p className="text-[15px] leading-relaxed text-gray-400">
+          {bio || "No Information written"}
         </p>
       </div>
 
+      {/* About me */}
+      <div>
+        <p className="mb-1 font-semibold text-[15px]">About me</p>
+        <p className="text-[15px] leading-relaxed whitespace-pre-line text-gray-400">
+          {aboutMe || "No Information written"}
+        </p>
+      </div>
+
+      {/* Contact Info */}
+      {(city || phone) && (
+        <div>
+          <p className="mb-2 font-semibold text-[15px]">Contact</p>
+          <div className="space-y-1 text-[15px]">
+            {city && (
+              <p className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gray-500" />
+                {city}
+              </p>
+            )}
+            {phone && (
+              <p className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-500" />
+                {phone}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* What I am looking for */}
-      {lookingFor.length > 0 && (
-        <TagList
-          title="What I am looking for"
-          tags={lookingFor}
-          variant="dark"
-        />
-      )}
-
-      {/* Genres */}
-      {genres.length > 0 && (
-        <TagList title="Genres" tags={genres} variant="dark" />
-      )}
-
-      {/* Spotify */}
-      {spotifyUrl && (
-        <div className="space-y-2">
-          <p className="font-semibold text-[15px]">Spotify</p>
-          <SpotifyEmbed spotifyUrl={spotifyUrl} />
+      <div>
+        <p className="mb-2 font-semibold text-[15px]">I am looking to</p>
+        <div className="grid grid-cols-2 gap-2">
+          {interestOptions.map((interest, idx) => {
+            const isSelected = interests.includes(interest);
+            return (
+              <div
+                key={idx}
+                className={`px-3 py-2 text-[13px] font-medium text-center rounded-2xl ${
+                  isSelected
+                    ? "bg-primary-purple text-white"
+                    : "bg-white text-neutral-black border-2 border-neutral-border"
+                }`}
+              >
+                {interest}
+              </div>
+            );
+          })}
         </div>
-      )}
-
-      {/* Featured review - Only show if there's review data */}
-      {reviewText && (
-        <div className="space-y-2">
-          <p className="font-semibold text-[15px]">Featured review</p>
-          <ReviewSnippet
-            rating={reviewRating}
-            count={reviewCount}
-            text={reviewText}
-          />
-        </div>
-      )}
-
-      {/* Social media */}
-      <SocialMediaLinks />
+      </div>
     </div>
   );
 }

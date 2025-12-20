@@ -1,16 +1,65 @@
 import React, { useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { updateProfile } from "../../lib/api";
 /**
  * Subscription.jsx
  * Step 5: Present plan choices (monthly/yearly) before finalizing onboarding.
+ * Creates the user account and saves all onboarding data.
  * Props:
+ *  - email, password: credentials from SignupForm
+ *  - userType, userInfo, selectedInterests: collected data
  *  - onStartTrial(plan): called with selectedPlan when user starts trial
  *  - onSkip(): skip subscription and finish onboarding
  * Internal state: selectedPlan ('monthly' | 'yearly'). Defaults to yearly.
  */
 import logoLineUpDark from "../../assets/icons/logoLineUp-Dark.svg";
 
-export function Subscription({ onStartTrial, onSkip }) {
+export function Subscription({ email, password, userType, userInfo, selectedInterests, onStartTrial, onSkip }) {
   const [selectedPlan, setSelectedPlan] = useState("yearly");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const { signUp } = useAuth();
+
+  const handleFinish = async (plan) => {
+    setError(null);
+    setIsSubmitting(true);
+    
+    try {
+      console.log("🔵 Subscription: Creating account with email:", email);
+      
+      // Create the account
+      await signUp(email, password);
+      
+      console.log("✅ Subscription: Account created, now saving profile data");
+      
+      // Save all onboarding data to profile
+      await updateProfile({
+        user_type: userType,
+        displayname: userInfo.name || '',
+        user_phone: userInfo.phone,
+        birth_date: userInfo.birthDate,
+        city: userInfo.city,
+        country_code: userInfo.countryCode || '+45',
+        interests: selectedInterests.join(', '),
+      });
+      
+      console.log("✅ Subscription: Profile data saved");
+      
+      // Mark onboarding as complete
+      window.localStorage.setItem("onboarding_complete", "true");
+      
+      // Call parent callback
+      if (plan) {
+        onStartTrial(plan);
+      } else {
+        onSkip();
+      }
+    } catch (err) {
+      console.error("❌ Subscription: Failed to create account or save data", err);
+      setError(err.message || "Failed to complete signup. Please try again.");
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-md mx-auto p-4">
@@ -124,12 +173,20 @@ export function Subscription({ onStartTrial, onSkip }) {
         </button>
       </div>
 
+      {/* Error message */}
+      {error && (
+        <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
       {/* Start Trial Button */}
       <button
-        onClick={() => onStartTrial(selectedPlan)}
-        className="w-full py-2.5 bg-primary-yellow text-gray-800 font-semibold rounded-full hover:opacity-90 transition mb-3"
+        onClick={() => handleFinish(selectedPlan)}
+        disabled={isSubmitting}
+        className="w-full py-2.5 bg-primary-yellow text-gray-800 font-semibold rounded-full hover:opacity-90 transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Start my free 7-day trial
+        {isSubmitting ? "Creating account..." : "Start my free 7-day trial"}
       </button>
 
       {/* Terms and Privacy */}
@@ -141,10 +198,11 @@ export function Subscription({ onStartTrial, onSkip }) {
       {/* Skip for now */}
       <div className="w-full flex justify-center">
         <button
-          onClick={onSkip}
-          className="text-gray-600 text-sm font-medium underline cursor-pointer"
+          onClick={() => handleFinish(null)}
+          disabled={isSubmitting}
+          className="text-gray-600 text-sm font-medium underline cursor-pointer disabled:opacity-50"
         >
-          Skip for now
+          {isSubmitting ? "Creating account..." : "Skip for now"}
         </button>
       </div>
     </div>

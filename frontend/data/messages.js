@@ -43,11 +43,11 @@ export function transformMessages(
   friendImage
 ) {
   return databaseMessages.map((msg) => ({
-    id: msg.id || `${msg.thread_id}-${msg.sender_id}-${msg.created_at}`,
-    type: msg.sender_id === currentUserId ? "user" : "friend",
+    id: msg.message_id || msg.id || `${msg.thread_id}-${msg.user_id}-${msg.created_at}`,
+    type: msg.user_id === currentUserId ? "user" : "friend",
     content: msg.message_content,
-    senderId: msg.sender_id,
-    avatar: msg.sender_id === currentUserId ? currentUserImage : friendImage,
+    senderId: msg.user_id,
+    avatar: msg.user_id === currentUserId ? currentUserImage : friendImage,
     created_at: msg.created_at,
   }));
 }
@@ -60,7 +60,7 @@ export async function sendMessage(threadId, userId, content) {
       .from("messages")
       .insert({
         thread_id: threadId,
-        sender_id: userId,
+        user_id: userId,
         message_content: content,
         created_at: new Date().toISOString(),
       })
@@ -80,33 +80,29 @@ export async function getUserThreads(userId) {
   try {
     const supabase = getSupabaseClient();
 
-    // Hent alle threads hvor brugeren er user_id
-    const { data: threads1, error: error1 } = await supabase
+    // Hent alle thread_participants hvor brugeren deltager
+    const { data: participations, error: participationsError } = await supabase
+      .from("thread_participants")
+      .select("thread_id, role, joined_at")
+      .eq("user_id", userId);
+
+    if (participationsError) throw participationsError;
+
+    if (!participations || participations.length === 0) {
+      return [];
+    }
+
+    // Hent thread detaljer
+    const threadIds = participations.map(p => p.thread_id);
+    const { data: threads, error: threadsError } = await supabase
       .from("threads")
       .select("*")
-      .eq("user_id", userId)
+      .in("thread_id", threadIds)
       .order("created_at", { ascending: false });
 
-    if (error1) throw error1;
+    if (threadsError) throw threadsError;
 
-    // Hent alle threads hvor brugeren er user_id_1
-    const { data: threads2, error: error2 } = await supabase
-      .from("threads")
-      .select("*")
-      .eq("user_id_1", userId)
-      .order("created_at", { ascending: false });
-
-    if (error2) throw error2;
-
-    // Merge og fjern duplikater
-    const allThreads = [...(threads1 || []), ...(threads2 || [])];
-    const uniqueThreads = Array.from(
-      new Map(allThreads.map((t) => [t.thread_id, t])).values()
-    );
-
-    return uniqueThreads.sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    );
+    return threads || [];
   } catch (error) {
     console.error("Error fetching user threads:", error);
     return [];
@@ -140,37 +136,99 @@ export async function getOrCreateThread(user1Id, user2Id) {
   try {
     const supabase = getSupabaseClient();
 
-    // Først, prøv at finde en eksisterende tråd - brug and() operator korrekt
-    const { data: existingThreads, error: fetchError } = await supabase
-      .from("threads")
-      .select("*")
-      .or(
-        `and(user_id.eq.${user1Id},user_id_1.eq.${user2Id}),and(user_id.eq.${user2Id},user_id_1.eq.${user1Id})`
-      );
+    // Find eksisterende thread hvor begge brugere er deltagere
+    // Først hent alle threads hvor user1 deltager
+    const { data: user1Participations, error: error1 } = await supabase
+      .from("thread_participants")
+      .select("thread_id")
+      .eq("user_id", user1Id);
 
-    if (fetchError) throw fetchError;
+    if (error1) throw error1;
 
-    if (existingThreads && existingThreads.length > 0) {
-      return existingThreads[0];
+    if (!user1Participations || user1Participations.length === 0) {
+      // Ingen threads for user1, opret ny
+      return await createDirectThread(user1Id, user2Id);
     }
 
-    // Hvis ingen tråd findes, opret en ny
-    const { data: newThread, error: createError } = await supabase
-      .from("threads")
-      .insert({
-        user_id: user1Id,
-        user_id_1: user2Id,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    // Hent alle threads hvor user2 deltager
+    const { data: user2Participations, error: error2 } = await supabase
+      .from("thread_participants")
+      .select("thread_id")
+      .eq("user_id", user2Id);
 
-    if (createError) throw createError;
-    return newThread;
+    if (error2) throw error2;
+
+    // Find fælles threads (direct chats mellem de to brugere)
+    const user1ThreadIds = user1Participations.map(p => p.thread_id);
+    const user2ThreadIds = user2Participations.map(p => p.thread_id);
+    const commonThreadIds = user1ThreadIds.filter(id => user2ThreadIds.includes(id));
+
+    if (commonThreadIds.length > 0) {
+      // Find den første direct thread med kun disse 2 deltagere
+      for (const threadId of commonThreadIds) {
+        const { data: participants, error: pError } = await supabase
+          .from("thread_participants")
+          .select("user_id")
+          .eq("thread_id", threadId);
+
+        if (pError) continue;
+
+        if (participants.length === 2) {
+          // Dette er en 1-to-1 chat, hent thread detaljer
+          const { data: thread, error: tError } = await supabase
+            .from("threads")
+            .select("*")
+            .eq("thread_id", threadId)
+            .eq("thread_type", "direct")
+            .single();
+
+          if (!tError && thread) {
+            return thread;
+          }
+        }
+      }
+    }
+
+    // Ingen eksisterende direct thread fundet, opret ny
+    return await createDirectThread(user1Id, user2Id);
   } catch (error) {
     console.error("Error getting or creating thread:", error);
     throw error;
   }
+}
+
+// Helper function til at oprette en ny direct thread
+async function createDirectThread(user1Id, user2Id) {
+  const supabase = getSupabaseClient();
+
+  // Opret thread
+  const { data: newThread, error: createError } = await supabase
+    .from("threads")
+    .insert({
+      created_by_user_id: user1Id,
+      thread_type: "direct",
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (createError) throw createError;
+
+  // Tilføj begge brugere som deltagere
+  const { error: participantsError } = await supabase
+    .from("thread_participants")
+    .insert([
+      { thread_id: newThread.thread_id, user_id: user1Id, role: "member" },
+      { thread_id: newThread.thread_id, user_id: user2Id, role: "member" },
+    ]);
+
+  if (participantsError) {
+    // Rollback: slet thread hvis deltagere ikke kunne tilføjes
+    await supabase.from("threads").delete().eq("thread_id", newThread.thread_id);
+    throw participantsError;
+  }
+
+  return newThread;
 }
 
 // Slet en tråd og tilhørende beskeder

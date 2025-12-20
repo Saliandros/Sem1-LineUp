@@ -1,16 +1,20 @@
-// In api.js (or profileApi.js)
+import { supabase } from "./supabaseClient.js";
+
 export async function updateProfileWithImage(profileData, imageFile = null) {
-  const tokenKey = "sb-vcmpzamxviwppvorclbk-auth-token";
-  const tokenData = localStorage.getItem(tokenKey);
-  if (!tokenData) {
-    throw new Error("No auth token found!");
+  // Get the current session from Supabase
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error("No active session found. Please log in again.");
   }
-  const { access_token } = JSON.parse(tokenData);
 
   const formData = new FormData();
-  Object.keys(profileData).forEach((key) =>
-    formData.append(key, profileData[key])
-  );
+  Object.keys(profileData).forEach((key) => {
+    if (profileData[key] !== null && profileData[key] !== undefined) {
+      formData.append(key, profileData[key]);
+    }
+  });
+  
   if (imageFile) {
     formData.append("user_image", imageFile);
   }
@@ -19,7 +23,7 @@ export async function updateProfileWithImage(profileData, imageFile = null) {
   const response = await fetch(`${API_BASE}/api/profiles`, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${access_token}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
     body: formData,
   });
@@ -29,5 +33,5 @@ export async function updateProfileWithImage(profileData, imageFile = null) {
     throw new Error(errorData.error || "Failed to update profile");
   }
 
-  return response.json(); // Or whatever success data you need
+  return response.json();
 }
