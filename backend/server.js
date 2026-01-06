@@ -15,7 +15,10 @@ import connectionsRouter from "./routes/connections.js";
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable CORS for all origins
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true
+})); // Enable CORS with credentials
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -1,10 +1,11 @@
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { authenticate, optionalAuth } from "../middleware/auth.js";
+import crypto from "crypto";
 
 const router = express.Router();
 
-// Get all connections for a user
+// Get all connections for a user (only accepted ones)
 router.get("/", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -13,6 +14,7 @@ router.get("/", authenticate, async (req, res) => {
       .from("connections")
       .select("*")
       .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`)
+      .eq("status", "accepted")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -84,8 +86,11 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     const connectionData = {
+      connection_id: crypto.randomUUID(),
       user_id_1: userA,
       user_id_2: userB,
+      requester_id: userId,
+      status: 'pending',
       created_at: new Date().toISOString(),
     };
 
@@ -148,6 +153,179 @@ router.delete("/:connectionId", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Delete connection error:", error);
     res.status(500).json({ error: "Failed to delete connection" });
+  }
+});
+
+// Accept a connection request
+router.patch("/:connectionId/accept", authenticate, async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+    const userId = req.user.id;
+
+    // Check if user is the recipient of this connection request
+    const { data: connection } = await supabase
+      .from("connections")
+      .select("*")
+      .eq("connection_id", connectionId)
+      .single();
+
+    if (!connection) {
+      return res.status(404).json({ error: "Connection request not found" });
+    }
+
+    // Only the recipient (not the requester) can accept
+    if (connection.requester_id === userId) {
+      return res.status(403).json({ error: "You cannot accept your own request" });
+    }
+
+    // Check that current user is part of this connection
+    if (connection.user_id_1 !== userId && connection.user_id_2 !== userId) {
+      return res.status(403).json({ error: "You can only accept requests sent to you" });
+    }
+
+    if (connection.status !== 'pending') {
+      return res.status(400).json({ error: "Connection request is not pending" });
+    }
+
+    const { data, error } = await supabase
+      .from("connections")
+      .update({ status: 'accepted' })
+      .eq("connection_id", connectionId)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("🔴 Accept connection error:", error);
+      return res.status(500).json({
+        error: "Failed to accept connection",
+        details: error.message,
+      });
+    }
+
+    res.json({
+      message: "Connection request accepted",
+      connection: data,
+    });
+  } catch (error) {
+    console.error("🔴 Accept connection catch error:", error);
+    res.status(500).json({
+      error: "Failed to accept connection",
+      message: error.message,
+    });
+  }
+});
+
+// Reject a connection request
+router.patch("/:connectionId/reject", authenticate, async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+    const userId = req.user.id;
+
+    // Check if user is the recipient of this connection request
+    const { data: connection } = await supabase
+      .from("connections")
+      .select("*")
+      .eq("connection_id", connectionId)
+      .single();
+
+    if (!connection) {
+      return res.status(404).json({ error: "Connection request not found" });
+    }
+
+    // Only the recipient (not the requester) can reject
+    if (connection.requester_id === userId) {
+      return res.status(403).json({ error: "You cannot reject your own request" });
+    }
+
+    // Check that current user is part of this connection
+    if (connection.user_id_1 !== userId && connection.user_id_2 !== userId) {
+      return res.status(403).json({ error: "You can only reject requests sent to you" });
+    }
+
+    if (connection.status !== 'pending') {
+      return res.status(400).json({ error: "Connection request is not pending" });
+    }
+
+    // Delete rejected requests instead of keeping them
+    const { error } = await supabase
+      .from("connections")
+      .delete()
+      .eq("connection_id", connectionId);
+
+    if (error) {
+      console.error("🔴 Reject connection error:", error);
+      return res.status(500).json({
+        error: "Failed to reject connection",
+        details: error.message,
+      });
+    }
+
+    res.json({
+      message: "Connection request rejected",
+    });
+  } catch (error) {
+    console.error("🔴 Reject connection catch error:", error);
+    res.status(500).json({
+      error: "Failed to reject connection",
+      message: error.message,
+    });
+  }
+});
+
+// Get pending connection requests (received by current user)
+router.get("/requests/pending", authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get requests where current user is part of the connection but NOT the requester
+    const { data: connections, error: connectionsError } = await supabase
+      .from("connections")
+      .select("*")
+      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`)
+      .neq("requester_id", userId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (connectionsError) {
+      console.error("🔴 Get pending requests error:", connectionsError);
+      return res.status(500).json({
+        error: "Failed to fetch pending requests",
+        details: connectionsError.message,
+      });
+    }
+
+    if (!connections || connections.length === 0) {
+      return res.json({ requests: [] });
+    }
+
+    // Get requester profiles
+    const requesterIds = connections.map(conn => conn.requester_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, displayname, user_image, user_bio, city")
+      .in("id", requesterIds);
+
+    if (profilesError) {
+      console.error("🔴 Get requester profiles error:", profilesError);
+      return res.status(500).json({
+        error: "Failed to fetch requester profiles",
+        details: profilesError.message,
+      });
+    }
+
+    // Merge profiles into connections
+    const requestsWithProfiles = connections.map(conn => ({
+      ...conn,
+      requester: profiles.filter(p => p.id === conn.requester_id)
+    }));
+
+    res.json({ requests: requestsWithProfiles });
+  } catch (error) {
+    console.error("🔴 Get pending requests catch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch pending requests",
+      message: error.message,
+    });
   }
 });
 

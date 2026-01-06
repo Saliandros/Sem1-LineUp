@@ -1,4 +1,4 @@
-import { Link, useLoaderData, useParams } from "react-router";
+import { Link, useLoaderData, useParams, useRevalidator } from "react-router";
 
 import { getCurrentUserProfile, getProfileById, getCurrentUser } from "../lib/api";
 
@@ -40,9 +40,15 @@ export async function clientLoader({ params }) {
 export default function ProfileScreen() {
   const loaderData = useLoaderData();
   const params = useParams();
+  const revalidator = useRevalidator();
 
   const profileData = loaderData?.profile;
   const isOwnProfile = loaderData?.isOwnProfile;
+
+  // Callback to refresh profile data after connection changes
+  const handleConnectionChange = () => {
+    revalidator.revalidate();
+  };
 
   // If profile is not yet loaded, return null (let React Router handle it)
   if (!profileData && !loaderData?.error) {
@@ -62,14 +68,18 @@ export default function ProfileScreen() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-neutral-light-gray">
+    <div className="flex items-center justify-center min-h-screen p-4 pb-24 bg-neutral-light-gray">
       <div className="relative w-full h-full">
         {/* Gradient overlays */}
         <div className="absolute inset-x-0 top-0 h-6 pointer-events-none bg-gradient-to-b from-neutral-light-gray to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none bg-gradient-to-t from-neutral-light-gray to-transparent" />
-        <div className="flex flex-col gap-3.5 h-full overflow-y-auto scroll-smooth">
+        <div className="flex flex-col gap-3.5 h-full overflow-y-auto scroll-smooth pb-4">
           {/* Profile Header */}
-          <ProfileHeader profileData={profileData} isOwnProfile={isOwnProfile} />
+          <ProfileHeader 
+            profileData={profileData} 
+            isOwnProfile={isOwnProfile}
+            onConnectionChange={handleConnectionChange}
+          />
 
           {/* About Section */}
           <section>

@@ -5,6 +5,8 @@ import { supabase } from "./supabaseClient";
  * Centralized data fetching with error handling
  */
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 // ============================================
 // ERROR HANDLING
 // ============================================
@@ -189,4 +191,206 @@ export async function searchProfiles(query) {
 
   handleSupabaseError(error);
   return data || [];
+}
+
+/*===============================================
+=          CONNECTIONS API           =
+===============================================*/
+
+/**
+ * Get all connections for current user (only accepted ones)
+ */
+export async function getConnections() {
+  const { data, error } = await supabase
+    .from("connections")
+    .select("*")
+    .eq("status", "accepted")
+    .order("created_at", { ascending: false });
+
+  handleSupabaseError(error);
+  return data || [];
+}
+
+/**
+ * Check if connected with a user
+ * Returns the connection object if it exists, null otherwise
+ */
+export async function checkConnection(userId) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const userA = user.id < userId ? user.id : userId;
+  const userB = user.id < userId ? userId : user.id;
+
+  const { data, error } = await supabase
+    .from("connections")
+    .select("*")
+    .eq("user_id_1", userA)
+    .eq("user_id_2", userB)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Check connection error:", error);
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * Create a connection request with another user
+ */
+export async function createConnection(userId) {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new ApiError("Not authenticated", "UNAUTHENTICATED", null);
+  }
+
+  if (user.id === userId) {
+    throw new ApiError("Cannot connect with yourself", "INVALID_REQUEST", null);
+  }
+
+  // Get session token for authorization
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new ApiError("No active session", "UNAUTHENTICATED", null);
+  }
+
+  // Use backend API instead of direct Supabase to avoid connection_id issues
+  const response = await fetch(`${API_BASE}/api/connections`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ user_id_2: userId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new ApiError(
+      errorData.error || "Failed to create connection request",
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  const { connection } = await response.json();
+  return connection;
+}
+
+/**
+ * Accept a connection request
+ */
+export async function acceptConnection(connectionId) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new ApiError("No active session", "UNAUTHENTICATED", null);
+  }
+
+  const response = await fetch(`${API_BASE}/api/connections/${connectionId}/accept`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new ApiError(
+      errorData.error || "Failed to accept connection",
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  const { connection } = await response.json();
+  return connection;
+}
+
+/**
+ * Reject a connection request
+ */
+export async function rejectConnection(connectionId) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new ApiError("No active session", "UNAUTHENTICATED", null);
+  }
+
+  const response = await fetch(`${API_BASE}/api/connections/${connectionId}/reject`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new ApiError(
+      errorData.error || "Failed to reject connection",
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  return true;
+}
+
+/**
+ * Get pending connection requests (received by current user)
+ */
+export async function getPendingRequests() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new ApiError("No active session", "UNAUTHENTICATED", null);
+  }
+
+  const response = await fetch(`${API_BASE}/api/connections/requests/pending`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new ApiError(
+      errorData.error || "Failed to get pending requests",
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  const { requests } = await response.json();
+  return requests;
+}
+
+/**
+ * Delete a connection
+ */
+export async function deleteConnection(connectionId) {
+  // Get session token for authorization
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new ApiError("No active session", "UNAUTHENTICATED", null);
+  }
+
+  // Use backend API with authentication
+  const response = await fetch(`${API_BASE}/api/connections/${connectionId}`, {
+    method: "DELETE",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new ApiError(
+      errorData.error || "Failed to delete connection",
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  return true;
 }

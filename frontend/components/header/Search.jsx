@@ -1,12 +1,36 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { searchProfiles } from "../../lib/api";
+import { searchProfiles, getConnections, getCurrentUser } from "../../lib/api";
 
 export default function Search({ closeSearch }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [connectionIds, setConnectionIds] = useState(new Set());
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  // Load current user and connections on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const user = await getCurrentUser();
+        setCurrentUserId(user?.id);
+
+        const connections = await getConnections();
+        // Extract all user IDs from connections (both user_id_1 and user_id_2)
+        const ids = new Set();
+        connections.forEach(conn => {
+          ids.add(conn.user_id_1);
+          ids.add(conn.user_id_2);
+        });
+        setConnectionIds(ids);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
     const delaySearch = setTimeout(async () => {
@@ -94,47 +118,64 @@ export default function Search({ closeSearch }) {
 
         {!isSearching && searchResults.length > 0 && (
           <div className="space-y-2">
-            {searchResults.map((profile) => (
-              <div
-                key={profile.id}
-                onClick={() => handleProfileClick(profile.id)}
-                className="flex items-center gap-3 p-3 bg-white rounded-2xl cursor-pointer hover:bg-gray-50 transition"
-              >
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
-                  {profile.user_image ? (
-                    <img
-                      src={profile.user_image}
-                      alt={profile.displayname || "User"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xl text-gray-500">
-                      {(profile.displayname || "U").charAt(0).toUpperCase()}
+            {searchResults.map((profile) => {
+              const isConnected = connectionIds.has(profile.id);
+              const isCurrentUser = profile.id === currentUserId;
+              
+              return (
+                <div
+                  key={profile.id}
+                  onClick={() => handleProfileClick(profile.id)}
+                  className="flex items-center gap-3 p-3 bg-white rounded-2xl cursor-pointer hover:bg-gray-50 transition"
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+                    {profile.user_image ? (
+                      <img
+                        src={profile.user_image}
+                        alt={profile.displayname || "User"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xl text-gray-500">
+                        {(profile.displayname || "U").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-800 truncate">
+                        {profile.displayname || "User"}
+                      </h3>
+                      {isCurrentUser && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+                          You
+                        </span>
+                      )}
+                      {!isCurrentUser && isConnected && (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                          Connected
+                        </span>
+                      )}
                     </div>
+                    {profile.user_bio && (
+                      <p className="text-sm text-gray-500 truncate">
+                        {profile.user_bio}
+                      </p>
+                    )}
+                    {profile.city && (
+                      <p className="text-xs text-gray-400">
+                        {profile.city}
+                      </p>
+                    )}
+                  </div>
+                  {profile.user_type && (
+                    <span className="text-xs px-2 py-1 bg-primary-yellow rounded-full text-gray-800">
+                      {profile.user_type}
+                    </span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-800 truncate">
-                    {profile.displayname || "User"}
-                  </h3>
-                  {profile.user_bio && (
-                    <p className="text-sm text-gray-500 truncate">
-                      {profile.user_bio}
-                    </p>
-                  )}
-                  {profile.city && (
-                    <p className="text-xs text-gray-400">
-                      {profile.city}
-                    </p>
-                  )}
-                </div>
-                {profile.user_type && (
-                  <span className="text-xs px-2 py-1 bg-primary-yellow rounded-full text-gray-800">
-                    {profile.user_type}
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

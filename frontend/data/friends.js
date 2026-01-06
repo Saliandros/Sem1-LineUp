@@ -53,29 +53,62 @@ export async function fetchGroupChats() {
   }
 }
 
-// MIDLERTIDIG: Hent alle brugere som "venner" (til vi får en ordentlig profilside)
+// Hent alle venner (connections) for den nuværende bruger
 export async function fetchAllUsersAsFriends() {
   try {
-    const VITE_API_URL = import.meta.env.VITE_API_URL;
-    const response = await fetch(`${VITE_API_URL}/api/profiles`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch profiles: ${response.statusText}`);
+    const supabase = getSupabaseClient();
+    
+    // Først hent den nuværende bruger
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error("Error getting current user:", userError);
+      return [];
     }
 
-    const { profiles } = await response.json();
+    // Hent alle connections hvor brugeren er en del af OG status er 'accepted'
+    const { data: connections, error: connectionsError } = await supabase
+      .from("connections")
+      .select("*")
+      .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+      .eq("status", "accepted");
 
-    console.log("Fetched profiles data:", profiles);
+    if (connectionsError) {
+      console.error("Error fetching connections:", connectionsError);
+      return [];
+    }
+
+    if (!connections || connections.length === 0) {
+      return [];
+    }
+
+    // Find alle vennernes IDs (den anden bruger i hver connection)
+    const friendIds = connections.map(conn => 
+      conn.user_id_1 === user.id ? conn.user_id_2 : conn.user_id_1
+    );
+
+    // Hent profil information for alle venner
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, displayname, user_image")
+      .in("id", friendIds);
+
+    if (profilesError) {
+      console.error("Error fetching friend profiles:", profilesError);
+      return [];
+    }
+
+    console.log("Fetched connected friends:", profiles);
 
     return (profiles || []).map((profile) => ({
       id: profile.id,
-      title: profile.displayname || profile.username || profile.email?.split('@')[0] || 'Unknown',
+      title: profile.displayname || 'Unknown',
       avatar: profile.user_image,
       user_image: profile.user_image,
-      username: profile.username || profile.displayname,
+      username: profile.displayname,
     }));
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error("Error fetching connected friends:", error);
     return [];
   }
 }
