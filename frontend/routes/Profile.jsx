@@ -1,6 +1,6 @@
-import { Link, useLoaderData } from "react-router";
+import { Link, useLoaderData, useParams } from "react-router";
 
-import { getCurrentUserProfile } from "../lib/api";
+import { getCurrentUserProfile, getProfileById, getCurrentUser } from "../lib/api";
 
 // Profile sections
 import ProfileHeader from "../components/profile/sections/ProfileHeader";
@@ -10,16 +10,26 @@ import VideosSection from "../components/profile/sections/VideosSection";
 import CollaborationsSection from "../components/profile/sections/CollaborationsSection";
 import QuestionsSection from "../components/profile/sections/QuestionsSection";
 
-export async function clientLoader() {
-  console.log("profile clientLoader: Starting to load profile");
+export async function clientLoader({ params }) {
+  console.log("profile clientLoader: Starting to load profile", params);
 
   try {
-    const profile = await getCurrentUserProfile();
-    console.log("profile clientLoader: Fetched profile", profile);
-    return { profile };
+    const currentUser = await getCurrentUser();
+    const userId = params.userId;
+    
+    // If userId is provided, load that user's profile, otherwise load current user's profile
+    const profile = userId 
+      ? await getProfileById(userId)
+      : await getCurrentUserProfile();
+    
+    // Check if viewing own profile
+    const isOwnProfile = !userId || (currentUser && userId === currentUser.id);
+    
+    console.log("profile clientLoader: Fetched profile", profile, "isOwnProfile:", isOwnProfile);
+    return { profile, isOwnProfile };
   } catch (error) {
     console.error("profile clientLoader: Failed to load profile", error);
-    return { error: error.message, profile: null };
+    return { error: error.message, profile: null, isOwnProfile: false };
   }
 }
 
@@ -29,8 +39,10 @@ export async function clientLoader() {
  */
 export default function ProfileScreen() {
   const loaderData = useLoaderData();
+  const params = useParams();
 
   const profileData = loaderData?.profile;
+  const isOwnProfile = loaderData?.isOwnProfile;
 
   // If profile is not yet loaded, return null (let React Router handle it)
   if (!profileData && !loaderData?.error) {
@@ -57,7 +69,7 @@ export default function ProfileScreen() {
         <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none bg-gradient-to-t from-neutral-light-gray to-transparent" />
         <div className="flex flex-col gap-3.5 h-full overflow-y-auto scroll-smooth">
           {/* Profile Header */}
-          <ProfileHeader profileData={profileData} />
+          <ProfileHeader profileData={profileData} isOwnProfile={isOwnProfile} />
 
           {/* About Section */}
           <section>

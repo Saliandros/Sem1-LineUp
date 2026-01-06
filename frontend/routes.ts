@@ -18,6 +18,7 @@ export default [
     layout("./routes/Root.jsx", [
       index("./routes/Home.jsx"),
       route("profile", "./routes/Profile.jsx"),
+      route("profile/:userId", "./routes/Profile.jsx", { id: "user-profile" }),
       route("notes", "./routes/Notes.jsx"),
       route("edit-profile", "./routes/EditProfile.jsx"),
       route("collabs", "./routes/Services.jsx"),

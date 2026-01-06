@@ -171,13 +171,20 @@ export async function getAllProfiles(limit = 50) {
 }
 
 /**
- * Search profiles by username or bio
+ * Search profiles by displayname only
  */
 export async function searchProfiles(query) {
+  if (!query || query.trim().length === 0) {
+    return [];
+  }
+
+  const searchTerm = `%${query.trim()}%`;
+  
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
-    .or(`username.ilike.%${query}%,user_bio.ilike.%${query}%`)
+    .select("id, displayname, user_image, user_bio, city, user_type")
+    .ilike("displayname", searchTerm)
+    .order("displayname", { ascending: true })
     .limit(20);
 
   handleSupabaseError(error);

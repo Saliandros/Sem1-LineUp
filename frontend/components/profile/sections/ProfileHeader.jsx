@@ -6,10 +6,10 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 /**
  * Profile Header Komponent
- * Viser profilbillede, stats, navn og action knapper (Edit/Share)
+ * Viser profilbillede, stats, navn og action knapper (Edit/Share eller Connect)
  * Uses Supabase client directly for data fetching
  */
-export default function ProfileHeader({ profileData }) {
+export default function ProfileHeader({ profileData, isOwnProfile = true }) {
   console.log(profileData);
 
   // Display full name if it exists (new users), otherwise show username (old users)
@@ -69,17 +69,30 @@ export default function ProfileHeader({ profileData }) {
           {userCity && ` • ${userCity}`}
         </p>
 
-        {/* Knapper (Edit / Share profile) */}
+        {/* Knapper (Edit / Share profile eller Connect) */}
         <div className="flex justify-center gap-3">
-          <Link
-            to="/edit-profile"
-            className="flex-1 py-3 rounded-full bg-gradient-to-b from-secondary-gradient-light to-secondary-gradient-dark text-[14px] font-medium border border-secondary-border-gray shadow text-center"
-          >
-            Edit profile
-          </Link>
-          <button className="flex-1 py-3 rounded-full bg-gradient-to-b from-secondary-gradient-light to-secondary-gradient-dark text-[14px] font-medium border border-secondary-border-gray shadow">
-            Share profile
-          </button>
+          {isOwnProfile ? (
+            <>
+              <Link
+                to="/edit-profile"
+                className="flex-1 py-3 rounded-full bg-gradient-to-b from-secondary-gradient-light to-secondary-gradient-dark text-[14px] font-medium border border-secondary-border-gray shadow text-center"
+              >
+                Edit profile
+              </Link>
+              <button className="flex-1 py-3 rounded-full bg-gradient-to-b from-secondary-gradient-light to-secondary-gradient-dark text-[14px] font-medium border border-secondary-border-gray shadow">
+                Share profile
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="flex-1 py-3 rounded-full bg-gradient-to-b from-secondary-gradient-light to-secondary-gradient-dark text-[14px] font-medium border border-secondary-border-gray shadow">
+                Connect
+              </button>
+              <button className="flex-1 py-3 rounded-full bg-gradient-to-b from-secondary-gradient-light to-secondary-gradient-dark text-[14px] font-medium border border-secondary-border-gray shadow">
+                Message
+              </button>
+            </>
+          )}
         </div>
       </div>
     </section>

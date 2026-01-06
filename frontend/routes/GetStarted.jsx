@@ -303,6 +303,7 @@ export default function GetStarted() {
                 userType={userType}
                 userInfo={userInfo}
                 selectedInterests={selectedInterests}
+                setOnboardingComplete={true}
                 onStartTrial={(plan) => {
                   setSelectedSubscription(plan);
                   setShowLoading(true);

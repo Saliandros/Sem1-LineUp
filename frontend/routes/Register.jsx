@@ -1,12 +1,20 @@
 /**
  * Register.jsx
  * Registration flow without marketing carousel.
+ * Same as GetStarted.jsx but without the carousel (step 0) and without marking onboarding_complete.
+ * 
  * Step map:
- *   0: Signup (account creation)
- *   1: User type selection
- *   2: User information (profile basics)
+ *   0: Signup (account creation via Supabase Auth)
+ *   1: User type selection (musician/service-provider)
+ *   2: User information (name, phone, birthdate, city)
  *   3: Interests selection
  *   4: Subscription offer -> then loading + redirect
+ * 
+ * Data flow:
+ *   - Steps 0-4 collect data in component state
+ *   - When user finishes (step 4), showLoading is set to true
+ *   - Subscription component handles signUp() and updateProfile()
+ *   - After completion, redirect to home page WITHOUT setting onboarding_complete
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -17,7 +25,6 @@ import { UserInformation } from "../components/onboarding/UserInformation";
 import { Interests } from "../components/onboarding/Interests";
 import { Subscription } from "../components/onboarding/Subscription";
 import LoadingScreen from "../components/LoadingScreen";
-import { updateProfile } from "../lib/api";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -26,6 +33,8 @@ export default function Register() {
   const [onboardingStep, setOnboardingStep] = useState(0); // 0 = signup, 1 = user type, 2 = info, 3 = interests, 4 = subscription
   const [showLoading, setShowLoading] = useState(false);
 
+  const [email, setEmail] = useState(""); // Email from SignupForm
+  const [password, setPassword] = useState(""); // Password from SignupForm
   const [userType, setUserType] = useState(null); // 'musician' or 'service-provider'
   const [userInfo, setUserInfo] = useState({ name: "" }); // User information state
   const [selectedInterests, setSelectedInterests] = useState([]); // Interests state
@@ -56,45 +65,14 @@ export default function Register() {
   // Handle loading and redirect after registration completion
   useEffect(() => {
     if (showLoading) {
-      // Save registration data to database
-      const saveRegistrationData = async () => {
-        try {
-          console.log("📊 Saving registration data:", {
-            user_type: userType,
-            name: userInfo.name,
-            phone: userInfo.phone,
-            birthDate: userInfo.birthDate,
-            city: userInfo.city,
-            countryCode: userInfo.countryCode,
-            interests: selectedInterests,
-          });
-
-          const result = await updateProfile({
-            user_type: userType,
-            username: userInfo.name?.split(' ')[0] || 'user',
-            full_name: userInfo.name || '', // Store full name in dedicated field
-            user_phone: userInfo.phone,
-            birth_date: userInfo.birthDate,
-            city: userInfo.city,
-            country_code: userInfo.countryCode || '+45',
-            interests: selectedInterests.length > 0 ? selectedInterests : null,
-          });
-          
-          console.log("✅ Registration data saved successfully:", result);
-        } catch (error) {
-          console.error("❌ Failed to save registration data:", error);
-        }
-      };
-
-      saveRegistrationData();
-
       const timer = setTimeout(() => {
-        // Redirect to home
+        // Redirect to home without setting onboarding_complete
+        // This allows existing users to register without being marked as new
         window.location.href = "/";
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [showLoading, userType, userInfo, selectedInterests]);
+  }, [showLoading]);
 
   if (showLoading) {
     return <LoadingScreen />;
@@ -108,14 +86,19 @@ export default function Register() {
           {/* Progress Bar - Fixed at top */}
           <div className="fixed top-0 left-0 right-0 z-10 px-4 pt-16 bg-neutral-light-gray">
             <div className="w-full max-w-md mx-auto">
-              <Progress value={(onboardingStep / 5) * 100} className="mb-8" />
+              <Progress value={(onboardingStep / 4) * 100} className="mb-8" />
             </div>
           </div>
 
           <div className="flex items-center justify-center min-h-screen px-4 pt-24">
             <div className="w-full max-w-md pb-8">
               <SignupForm
-                onSuccess={() => setOnboardingStep(1)}
+                onContinue={(email, password) => {
+                  console.log("🟢 Register: Credentials collected, moving to step 1");
+                  setEmail(email);
+                  setPassword(password);
+                  setOnboardingStep(1);
+                }}
               />
             </div>
           </div>
@@ -128,7 +111,7 @@ export default function Register() {
           {/* Progress Bar - Fixed at top */}
           <div className="fixed top-0 left-0 right-0 z-10 px-4 pt-16 bg-neutral-light-gray">
             <div className="w-full max-w-md mx-auto">
-              <Progress value={(onboardingStep / 5) * 100} className="mb-8" />
+              <Progress value={(onboardingStep / 4) * 100} className="mb-8" />
             </div>
           </div>
 
@@ -150,7 +133,7 @@ export default function Register() {
           {/* Progress Bar - Fixed at top */}
           <div className="fixed top-0 left-0 right-0 z-10 px-4 pt-16 bg-neutral-light-gray">
             <div className="w-full max-w-md mx-auto">
-              <Progress value={(onboardingStep / 5) * 100} className="mb-8" />
+              <Progress value={(onboardingStep / 4) * 100} className="mb-8" />
             </div>
           </div>
 
@@ -188,7 +171,7 @@ export default function Register() {
           {/* Progress Bar - Fixed at top */}
           <div className="fixed top-0 left-0 right-0 z-10 px-4 pt-16 bg-neutral-light-gray">
             <div className="w-full max-w-md mx-auto">
-              <Progress value={(onboardingStep / 5) * 100} className="mb-8" />
+              <Progress value={(onboardingStep / 4) * 100} className="mb-8" />
             </div>
           </div>
 
@@ -211,13 +194,18 @@ export default function Register() {
           {/* Progress Bar - Fixed at top */}
           <div className="fixed top-0 left-0 right-0 z-10 px-4 pt-16 bg-neutral-light-gray">
             <div className="w-full max-w-md mx-auto">
-              <Progress value={(onboardingStep / 5) * 100} className="mb-8" />
+              <Progress value={(onboardingStep / 4) * 100} className="mb-8" />
             </div>
           </div>
 
           <div className="flex items-center justify-center min-h-screen px-4 pt-32">
             <div className="w-full max-w-md pb-8">
               <Subscription
+                email={email}
+                password={password}
+                userType={userType}
+                userInfo={userInfo}
+                selectedInterests={selectedInterests}
                 onStartTrial={(plan) => {
                   setSelectedSubscription(plan);
                   setShowLoading(true);

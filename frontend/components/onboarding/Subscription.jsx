@@ -10,11 +10,12 @@ import { updateProfile } from "../../lib/api";
  *  - userType, userInfo, selectedInterests: collected data
  *  - onStartTrial(plan): called with selectedPlan when user starts trial
  *  - onSkip(): skip subscription and finish onboarding
+ *  - setOnboardingComplete (optional): if true, sets onboarding_complete flag in localStorage
  * Internal state: selectedPlan ('monthly' | 'yearly'). Defaults to yearly.
  */
 import logoLineUpDark from "../../assets/icons/logoLineUp-Dark.svg";
 
-export function Subscription({ email, password, userType, userInfo, selectedInterests, onStartTrial, onSkip }) {
+export function Subscription({ email, password, userType, userInfo, selectedInterests, onStartTrial, onSkip, setOnboardingComplete = false }) {
   const [selectedPlan, setSelectedPlan] = useState("yearly");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -45,8 +46,10 @@ export function Subscription({ email, password, userType, userInfo, selectedInte
       
       console.log("✅ Subscription: Profile data saved");
       
-      // Mark onboarding as complete
-      window.localStorage.setItem("onboarding_complete", "true");
+      // Mark onboarding as complete (only if setOnboardingComplete is true)
+      if (setOnboardingComplete) {
+        window.localStorage.setItem("onboarding_complete", "true");
+      }
       
       // Call parent callback
       if (plan) {

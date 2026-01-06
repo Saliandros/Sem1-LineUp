@@ -24,6 +24,33 @@ router.get("/", optionalAuth, async (req, res) => {
   }
 });
 
+// Search profiles by displayname only
+router.get("/search", optionalAuth, async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length === 0) {
+      return res.json({ profiles: [] });
+    }
+
+    const searchTerm = `%${q.trim()}%`;
+    
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, displayname, user_image, user_bio, city, user_type")
+      .ilike("displayname", searchTerm)
+      .order("displayname", { ascending: true })
+      .limit(20);
+
+    if (error) throw error;
+
+    res.json({ profiles: data || [] });
+  } catch (error) {
+    console.error("Search profiles error:", error);
+    res.status(500).json({ error: "Failed to search profiles" });
+  }
+});
+
 // Get profile by user ID
 router.get("/:userId", optionalAuth, async (req, res) => {
   try {

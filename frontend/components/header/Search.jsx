@@ -1,4 +1,41 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { searchProfiles } from "../../lib/api";
+
 export default function Search({ closeSearch }) {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    const delaySearch = setTimeout(async () => {
+      if (searchQuery.trim().length > 0) {
+        setIsSearching(true);
+        try {
+          console.log("🔍 Searching for:", searchQuery);
+          const results = await searchProfiles(searchQuery);
+          console.log("✅ Search results:", results);
+          setSearchResults(results);
+        } catch (error) {
+          console.error("❌ Search error:", error);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  const handleProfileClick = (userId) => {
+    navigate(`/profile/${userId}`);
+    closeSearch();
+  };
+
   return (
     <section className="fixed top-0 left-0 z-10 w-full h-screen fade-in bg-neutral-light-gray">
       <header className="flex justify-between p-4 gap-1.5">
@@ -13,19 +50,25 @@ export default function Search({ closeSearch }) {
             <path
               d="M11.334 11.333L14.0007 13.9997"
               stroke="#555555"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
             <path
               d="M2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667C8.80864 12.6667 10.144 12.0676 11.1096 11.0995C12.0718 10.1348 12.6667 8.80354 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333Z"
               stroke="#555555"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
           </svg>
-          <input className="w-full" placeholder="Search"></input>
+          <input
+            className="w-full bg-transparent outline-none"
+            placeholder="Search for users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
         </div>
         <button
           onClick={closeSearch}
@@ -34,6 +77,67 @@ export default function Search({ closeSearch }) {
           Cancel
         </button>
       </header>
+
+      {/* Search Results */}
+      <div className="px-4 py-2 overflow-y-auto" style={{ maxHeight: "calc(100vh - 80px)" }}>
+        {isSearching && (
+          <div className="text-center text-gray-500 py-8">
+            Searching...
+          </div>
+        )}
+
+        {!isSearching && searchQuery.trim().length > 0 && searchResults.length === 0 && (
+          <div className="text-center text-gray-500 py-8">
+            No users found
+          </div>
+        )}
+
+        {!isSearching && searchResults.length > 0 && (
+          <div className="space-y-2">
+            {searchResults.map((profile) => (
+              <div
+                key={profile.id}
+                onClick={() => handleProfileClick(profile.id)}
+                className="flex items-center gap-3 p-3 bg-white rounded-2xl cursor-pointer hover:bg-gray-50 transition"
+              >
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+                  {profile.user_image ? (
+                    <img
+                      src={profile.user_image}
+                      alt={profile.displayname || "User"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xl text-gray-500">
+                      {(profile.displayname || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-800 truncate">
+                    {profile.displayname || "User"}
+                  </h3>
+                  {profile.user_bio && (
+                    <p className="text-sm text-gray-500 truncate">
+                      {profile.user_bio}
+                    </p>
+                  )}
+                  {profile.city && (
+                    <p className="text-xs text-gray-400">
+                      {profile.city}
+                    </p>
+                  )}
+                </div>
+                {profile.user_type && (
+                  <span className="text-xs px-2 py-1 bg-primary-yellow rounded-full text-gray-800">
+                    {profile.user_type}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
