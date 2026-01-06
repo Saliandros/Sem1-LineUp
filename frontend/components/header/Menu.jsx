@@ -12,7 +12,7 @@ export default function Menu({ closeMenu }) {
 
   return (
    <section
-      className={`fade-in fixed top-0 left-0 z-10 w-full h-screen bg-neutral-light-gray`}
+      className={`fade-in fixed top-0 left-0 z-[9999] w-full h-screen bg-neutral-light-gray`}
     >
       <header className="relative flex justify-center p-4 gap-1.5">
         <button className="absolute top-4 left-4" onClick={closeMenu}>

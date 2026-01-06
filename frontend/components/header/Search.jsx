@@ -61,7 +61,7 @@ export default function Search({ closeSearch }) {
   };
 
   return (
-    <section className="fixed top-0 left-0 z-10 w-full h-screen fade-in bg-neutral-light-gray">
+    <section className="fixed top-0 left-0 z-[9999] w-full h-screen fade-in bg-white">
       <header className="flex justify-between p-4 gap-1.5">
         <div className="flex gap-2.5 w-full p-2.5 bg-input-background items-center rounded-lg">
           <svg

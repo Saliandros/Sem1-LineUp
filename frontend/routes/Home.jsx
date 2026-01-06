@@ -88,6 +88,8 @@ export default function Home() {
   const [visiblePosts, setVisiblePosts] = useState(5);
   const { startChat, creatingThread } = useChat(user);
 
+  const [showFriendsPopup, setShowFriendsPopup] = useState(false);
+
   useEffect(() => {
     if (friends && user?.id) {
       const filteredFriends = friends.filter((f) => f.id !== user.id);
@@ -98,12 +100,80 @@ export default function Home() {
   }, [friends, user?.id]);
 
   return (
-    <div className="max-w-full">
-      <FriendsList
-        friends={allFriends}
-        creatingThread={creatingThread}
-        onFriendClick={startChat}
-      />
+    <div className="max-w-full lg:mt-4 lg:max-w-none w-full">
+      {/* Mobile: Always show FriendsList */}
+      <div className="lg:hidden">
+        <FriendsList
+          friends={allFriends}
+          creatingThread={creatingThread}
+          onFriendClick={startChat}
+        />
+      </div>
+
+      {/* Desktop: Connections Button */}
+      <button 
+        onClick={() => setShowFriendsPopup(!showFriendsPopup)}
+        className="hidden lg:flex fixed bottom-6 right-6 bg-[var(--color-primary-purple)] text-white px-4 py-2 rounded-full items-center gap-2 shadow-lg hover:bg-[var(--color-primary-purple)]/90 transition-colors z-40"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        Connections
+      </button>
+
+      {/* Desktop: Friends Popup */}
+      {showFriendsPopup && (
+        <div className="hidden lg:block fixed bottom-20 right-6 bg-white rounded-xl shadow-2xl p-4 z-50 w-80 max-h-60 overflow-y-auto">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-medium text-gray-900">Connections</h3>
+            <button 
+              onClick={() => setShowFriendsPopup(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {allFriends.slice(0, 12).map((friend) => (
+              <button
+                key={friend.id}
+                onClick={() => {
+                  startChat(friend.id);
+                  setShowFriendsPopup(false);
+                }}
+                disabled={creatingThread}
+                className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="relative">
+                  <div 
+                    className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 mb-1 border-2 border-[#fbbf24]"
+                  >
+                    {friend.avatar && (
+                      <img
+                        src={friend.avatar}
+                        alt={friend.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  {/* Online status indicator */}
+                  <div className="absolute bottom-1 right-0 w-3 h-3 bg-green-500 border border-white rounded-full z-20" />
+                </div>
+                <span className="text-xs text-gray-700 truncate max-w-full">
+                  {friend.title || 'Unknown'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Collaboration Requests Section */}
       {collaborations && collaborations.length > 0 && (
         <div className="w-full px-4 pt-8 pb-0  border-t border-black/6 bg-[var(--color-neutral-light-gray)]">

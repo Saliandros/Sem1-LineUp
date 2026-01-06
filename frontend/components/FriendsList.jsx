@@ -65,7 +65,7 @@ export default function FriendsList({
 
   return (
     <>
-      <div className="overflow-visible">
+      <div className="overflow-hidden relative z-0 lg:mt-6 lg:ml-0 w-full">
         {/* Friends container - Draggable */}
         <div
           ref={containerRef}
@@ -73,7 +73,7 @@ export default function FriendsList({
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
-          className="flex gap-6 px-4 pt-2 pb-8 overflow-x-auto overflow-y-visible scrollbar-hide cursor-grab active:cursor-grabbing"
+          className="flex gap-6 px-4 pt-2 pb-8 overflow-x-auto overflow-y-hidden scrollbar-hide cursor-grab active:cursor-grabbing lg:justify-start lg:px-4"
           style={{
             scrollBehavior: isDragging ? "auto" : "smooth",
             WebkitOverflowScrolling: "touch",

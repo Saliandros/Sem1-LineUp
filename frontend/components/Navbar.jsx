@@ -1,4 +1,8 @@
 import { NavLink } from "react-router";
+import Menu from "./header/Menu";
+import Search from "./header/Search";
+import Notification from "./header/Notification";
+import logoLineUpYellow from "../assets/icons/logoLineUp-Yellow.svg";
 
 const navItems = [
   {
@@ -146,34 +150,115 @@ const navItems = [
   },
 ];
 
-export default function Navbar({ isVisible = true }) {
+export default function Navbar({ 
+  isVisible = true, 
+  openSearch, 
+  setOpenSearch,
+  openNotification, 
+  setOpenNotification,
+  openMenu, 
+  setOpenMenu 
+}) {
   if (isVisible) return null;
 
   return (
-    <aside className="fixed bottom-0 w-full p-3 lg:top-0 lg:left-0 lg:h-screen lg:w-auto lg:p-6">
-      <nav className="navbar lg:h-full lg:flex lg:items-center">
-        <ul className="navbar-links flex justify-between w-full p-2 bg-[var(--color-background-nav)] text-white rounded-full lg:flex-col lg:gap-8 lg:p-4 lg:rounded-3xl lg:shadow-xl">
+    <>
+      {/* Desktop Top Navbar */}
+      <nav className="hidden lg:flex fixed top-0 left-0 right-0 z-50 bg-[var(--color-primary-purple)] h-16 items-center px-8 justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <img src={logoLineUpYellow} alt="LineUp" className="h-8 w-auto" />
+        </div>
+
+        {/* Center Navigation */}
+        <ul className="flex items-center gap-8 flex-1 justify-center">
+          {navItems.map((item) => (
+            <li key={item.id}>
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  `text-sm transition-all duration-200 px-4 py-2 rounded-xl ${
+                    isActive
+                      ? "text-white bg-white/20 backdrop-blur-md border border-white/30 shadow-lg"
+                      : "text-white/70 hover:text-white"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+
+        {/* Right Actions */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setOpenSearch(!openSearch)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+          </button>
+
+          <button 
+            onClick={() => setOpenNotification(!openNotification)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </button>
+
+          <button
+            onClick={() => setOpenMenu(!openMenu)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile: Full Screen Panels */}
+      <div className="lg:hidden">
+        {openSearch && <Search closeSearch={() => setOpenSearch(false)} />}
+        {openNotification && (
+          <Notification closeNotification={() => setOpenNotification(false)} />
+        )}
+        {openMenu && <Menu closeMenu={() => setOpenMenu(false)} />}
+      </div>
+
+      {/* Mobile Bottom Navbar */}
+      <aside className="fixed bottom-0 w-full p-3 lg:hidden">
+        <nav className="navbar">
+        <ul className="navbar-links flex justify-between w-full p-2 bg-[var(--color-background-nav)] text-white rounded-full">
           {navItems.map((it, idx) => (
             <li key={it.id ?? idx}>
               <NavLink
                 to={it.to}
                 className={({ isActive, isPending }) =>
-                  `flex flex-col items-center gap-1 p-3 transition-all duration-200 lg:flex-row lg:gap-3 lg:px-4 lg:py-3 lg:rounded-2xl lg:hover:bg-white/10 ${
+                  `flex flex-col items-center gap-1 p-3 transition-all duration-200 ${
                     isPending
                       ? "pending"
                       : isActive
-                        ? "active lg:bg-white/20"
+                        ? "active"
                         : ""
                   }`
                 }
               >
                 {it.icon}
-                <span className="text-[10px] lg:text-sm">{it.label}</span>
+                <span className="text-[10px]">{it.label}</span>
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
     </aside>
+    </>
   );
 }

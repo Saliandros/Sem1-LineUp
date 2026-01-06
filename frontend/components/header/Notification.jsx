@@ -61,7 +61,7 @@ export default function Notification({ closeNotification }) {
   };
 
   return (
-    <section className="fixed top-0 left-0 z-10 w-full h-screen fade-in bg-neutral-light-gray">
+    <section className="fixed top-0 left-0 z-[9999] w-full h-screen fade-in bg-white">
       <header className="relative flex justify-center p-4 gap-1.5">
         <button className="absolute top-4 left-4" onClick={closeNotification}>
           <svg
