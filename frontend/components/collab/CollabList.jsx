@@ -11,6 +11,7 @@ export default function CollabList({
   collaborations = [],
   onStartChat,
   creatingThread,
+  currentUserId,
 }) {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
@@ -211,6 +212,7 @@ export default function CollabList({
                 toggleSave={toggleSave}
                 expandedId={expandedId}
                 setExpandedId={setExpandedId}
+                currentUserId={currentUserId}
               />
             );
           })}

@@ -125,6 +125,7 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
       password_hash,
       user_type,
       email,
+      spotify_url,
     } = req.body;
 
     let imageUrl = user_image; // Default to the provided URL
@@ -189,6 +190,7 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
       password_hash,
       user_type,
       email,
+      spotify_url,
       updated_at: new Date().toISOString(),
     };
 

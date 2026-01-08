@@ -78,9 +78,9 @@ export default function RequestEditor() {
         <input type="hidden" name="submission_target" value="collaborations" />
 
         <AddPeople
-          name={profileData?.username || "Bruger"}
+          name={profileData?.displayname || "Bruger"}
           image={profileData?.user_image || ""}
-          alt={`${profileData?.username || "User"}'s profile picture`}
+          alt={`${profileData?.displayname || "User"}'s profile picture`}
         />
 
         <TitleComponent title={title} setTitle={setTitle} />

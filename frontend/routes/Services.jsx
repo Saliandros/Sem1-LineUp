@@ -314,6 +314,7 @@ export default function Services() {
           collaborations={collaborations}
           onStartChat={startChat}
           creatingThread={creatingThread}
+          currentUserId={user?.id}
         />
       </div>
     </main>

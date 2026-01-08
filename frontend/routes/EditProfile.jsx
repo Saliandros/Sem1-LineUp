@@ -80,6 +80,13 @@ export default function EditProfile() {
   const fileInputRef = useRef();
   const profile = useProfileData();
 
+  // Initialize Spotify URL from userData
+  useEffect(() => {
+    if (userData.spotify_url && !profile.spotifyUrl) {
+      profile.setSpotifyUrl(userData.spotify_url);
+    }
+  }, [userData.spotify_url, profile]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
@@ -105,6 +112,7 @@ export default function EditProfile() {
           city: city || userData.city,
           user_phone: userPhone || userData.user_phone,
           interests: interests.join(', '), // Convert array back to comma-separated string
+          spotify_url: profile.spotifyUrl, // Add Spotify URL
         },
         selectedImageFile // This will be null if no image selected
       );
@@ -286,13 +294,13 @@ export default function EditProfile() {
                 {/* <SocialMediaLinks /> */}
 
                 {/* Spotify */}
-                {/* <div className="space-y-3">
+                <div className="space-y-3">
                   <p className="font-medium">Spotify</p>
                   <SpotifyLinkInput
                     value={profile.spotifyUrl}
                     onChange={profile.setSpotifyUrl}
                   />
-                </div> */}
+                </div>
 
                 {/* Featured Review */}
                 {/* <EditableReview

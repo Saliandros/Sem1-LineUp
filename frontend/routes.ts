@@ -25,7 +25,6 @@ export default [
       route("create", "./routes/Create.jsx", [
         index("./routes/create/IndexRedirect.jsx"),
         route("note", "./components/postCreation/NoteEditor.jsx"),
-        route("story", "./components/postCreation/StoryEditor.jsx"),
         route("request", "./components/postCreation/RequestEditor.jsx"),
       ]),
       route("chat", "./routes/ChatList.jsx"),

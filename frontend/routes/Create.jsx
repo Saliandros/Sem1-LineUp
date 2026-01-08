@@ -72,14 +72,6 @@ export default function Create() {
           Note
         </NavLink>
         <NavLink
-          to="story"
-          className={({ isActive }) =>
-            `px-3 py-2 rounded-full leading-none ${isActive ? "bg-primary-yellow text-black" : ""}`
-          }
-        >
-          Story
-        </NavLink>
-        <NavLink
           to="request"
           className={({ isActive }) =>
             `px-3 py-2 rounded-full leading-none ${isActive ? "bg-primary-yellow text-black" : ""}`

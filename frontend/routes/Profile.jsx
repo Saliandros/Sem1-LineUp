@@ -9,6 +9,7 @@ import ArtistsSection from "../components/profile/sections/ArtistsSection";
 import VideosSection from "../components/profile/sections/VideosSection";
 import CollaborationsSection from "../components/profile/sections/CollaborationsSection";
 import QuestionsSection from "../components/profile/sections/QuestionsSection";
+import SpotifyEmbed from "../components/profile/shared/SpotifyEmbed";
 
 export async function clientLoader({ params }) {
   console.log("profile clientLoader: Starting to load profile", params);
@@ -100,6 +101,12 @@ export default function ProfileScreen() {
 
               {/* Dynamic Sections */}
               <div className="mt-4 space-y-4">
+                {profileData.spotify_url && (
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Spotify</h3>
+                    <SpotifyEmbed spotifyUrl={profileData.spotify_url} />
+                  </div>
+                )}
                 <ArtistsSection artists={profileData.artists || []} />
                 <VideosSection videos={profileData.videos || []} />
                 <CollaborationsSection

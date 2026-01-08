@@ -87,8 +87,34 @@ export default function Home() {
   const [allFriends, setAllFriends] = useState([]);
   const [visiblePosts, setVisiblePosts] = useState(5);
   const { startChat, creatingThread } = useChat(user);
-
   const [showFriendsPopup, setShowFriendsPopup] = useState(false);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(null); // Track which post's menu is open
+  const navigate = useNavigate();
+
+  const handleDeletePost = async (postId) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    
+    try {
+      const VITE_API_URL = import.meta.env.VITE_API_URL;
+      const { data: { session } } = await import('../lib/supabaseClient.js').then(m => m.supabase.auth.getSession());
+      
+      const response = await fetch(`${VITE_API_URL}/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (response.ok) {
+        window.location.reload(); // Reload to show updated list
+      } else {
+        alert('Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post');
+    }
+  };
 
   useEffect(() => {
     if (friends && user?.id) {
@@ -306,17 +332,35 @@ export default function Home() {
                             )}
                         </div>
                       </div>
-                      <button className="p-2 text-gray-600 rounded-full hover:bg-gray-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
+                      <div className="relative">
+                        <button 
+                          onClick={() => setShowDeleteMenu(showDeleteMenu === post.post_id ? null : post.post_id)}
+                          className="p-2 text-gray-600 rounded-full hover:bg-gray-100"
                         >
-                          <circle cx="5" cy="12" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="19" cy="12" r="2" />
-                        </svg>
-                      </button>
+                          <svg
+                            className="w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle cx="5" cy="12" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="19" cy="12" r="2" />
+                          </svg>
+                        </button>
+                        {showDeleteMenu === post.post_id && (
+                          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                            <button
+                              onClick={() => {
+                                handleDeletePost(post.post_id);
+                                setShowDeleteMenu(null);
+                              }}
+                              className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 rounded-lg text-sm"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Post Title */}

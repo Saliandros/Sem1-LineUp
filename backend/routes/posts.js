@@ -29,7 +29,7 @@ router.get("/", optionalAuth, async (req, res) => {
       const userIds = [...new Set(data.map((post) => post.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, username, user_image")
+        .select("id, displayname, user_image")
         .in("id", userIds);
 
       // Attach profile to each post
@@ -61,7 +61,7 @@ router.get("/:postId", optionalAuth, async (req, res) => {
       .select(
         `
         *,
-        profiles!post_note_user_id_fkey(id, username, user_image),
+        profiles!post_note_user_id_fkey(id, displayname, user_image),
         tags_post_join(tag_id, tags(tag_name))
       `
       )
@@ -92,7 +92,7 @@ router.get("/user/:userId", optionalAuth, async (req, res) => {
       .select(
         `
         *,
-        profiles!post_note_user_id_fkey(id, username, user_image),
+        profiles!post_note_user_id_fkey(id, displayname, user_image),
         tags_post_join(tag_id, tags(tag_name))
       `
       )

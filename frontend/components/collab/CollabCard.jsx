@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function CollabCard({
   collaboration,
@@ -9,8 +10,37 @@ export default function CollabCard({
   toggleSave,
   expandedId,
   setExpandedId,
+  currentUserId, // Add this prop to check if user owns the collab
 }) {
   const navigate = useNavigate();
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+
+  const handleDeleteCollab = async () => {
+    if (!confirm("Are you sure you want to delete this collaboration?")) return;
+    
+    const collabId = collaboration.collab_id || collaboration.id;
+    
+    try {
+      const VITE_API_URL = import.meta.env.VITE_API_URL;
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${VITE_API_URL}/api/collaborations/${collabId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        alert('Failed to delete collaboration');
+      }
+    } catch (error) {
+      console.error('Error deleting collaboration:', error);
+      alert('Failed to delete collaboration');
+    }
+  };
 
   // Normalize raw data (same logic as CollabList)
   const collab = {
@@ -183,29 +213,62 @@ export default function CollabCard({
               </div>
             </div>
           </div>
-          <button
-            aria-label="bookmark"
-            onClick={() => toggleSave(collab.id)}
-            className="p-2 rounded-md hover:bg-gray-100"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
-              fill={savedIds.has(collab.id) ? "currentColor" : "none"}
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              style={{
-                color: savedIds.has(collab.id) ? "#FFCF70" : "#999999",
-              }}
+          <div className="flex items-center gap-2">
+            <button
+              aria-label="bookmark"
+              onClick={() => toggleSave(collab.id)}
+              className="p-2 rounded-md hover:bg-gray-100"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 5v14l7-5 7 5V5a2 2 0 00-2-2H7a2 2 0 00-2 2z"
-              />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6"
+                fill={savedIds.has(collab.id) ? "currentColor" : "none"}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                style={{
+                  color: savedIds.has(collab.id) ? "#FFCF70" : "#999999",
+                }}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 5v14l7-5 7 5V5a2 2 0 00-2-2H7a2 2 0 00-2 2z"
+                />
+              </svg>
+            </button>
+            {currentUserId === collab.user_id && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowDeleteMenu(!showDeleteMenu)}
+                  className="p-2 text-gray-600 rounded-md hover:bg-gray-100"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="5" cy="12" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="19" cy="12" r="2" />
+                  </svg>
+                </button>
+                {showDeleteMenu && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                    <button
+                      onClick={() => {
+                        handleDeleteCollab();
+                        setShowDeleteMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 rounded-lg text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-3 mb-3 border-b border-gray-200" />

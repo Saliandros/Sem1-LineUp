@@ -13,7 +13,7 @@ router.get("/", optionalAuth, async (req, res) => {
     const { genre, location } = req.query;
     let query = supabase
       .from("collab_creation")
-      .select("*, profiles(id, username, user_image)")
+      .select("*, profiles(id, displayname, user_image)")
       .order("created_at", { ascending: false });
 
     if (genre) {
@@ -43,7 +43,7 @@ router.get("/:collabId", optionalAuth, async (req, res) => {
     const { data, error } = await supabase
       .from("collab_creation")
       .select(
-        "*, profiles!collab_creation_user_id_fkey(id, username, user_image)"
+        "*, profiles!collab_creation_user_id_fkey(id, displayname, user_image)"
       )
       .eq("collab_id", collabId)
       .single();
@@ -70,7 +70,7 @@ router.get("/user/:userId", optionalAuth, async (req, res) => {
     const { data, error } = await supabase
       .from("collab_creation")
       .select(
-        "*, profiles!collab_creation_user_id_fkey(id, username, user_image)"
+        "*, profiles!collab_creation_user_id_fkey(id, displayname, user_image)"
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
