@@ -218,13 +218,13 @@ export default function Home() {
                   {collab.profiles?.user_image && (
                     <img
                       src={collab.profiles.user_image}
-                      alt={collab.profiles.username}
+                      alt={collab.profiles.displayname}
                       className="object-cover w-[21px] h-[21px] rounded-full"
                     />
                   )}
                   <p className="!text-[12px] font-[400] text-[#8A8A8A]">
                     <span className="font-semibold text-[#8A8A8A]">
-                      {collab.profiles?.username || "User"}
+                      {collab.profiles?.displayname || "User"}
                     </span>
                     {collab.collab_genres && (
                       <span>
@@ -301,7 +301,7 @@ export default function Home() {
                               post.profiles?.user_image
                             }
                             alt={
-                              post.profile?.username || post.profiles?.username
+                              post.profile?.displayname || post.profiles?.displayname
                             }
                             className="object-cover w-[21px] h-[21px] rounded-full"
                           />
@@ -309,8 +309,8 @@ export default function Home() {
                           <div className="flex items-center justify-center w-[21px] h-[21px] bg-gray-200 rounded-full">
                             <span className="text-sm font-bold text-gray-600">
                               {(
-                                post.profile?.username ||
-                                post.profiles?.username
+                                post.profile?.displayname ||
+                                post.profiles?.displayname
                               )
                                 ?.charAt(0)
                                 .toUpperCase() || "U"}
@@ -319,8 +319,8 @@ export default function Home() {
                         )}
                         <div className="flex items-center gap-2">
                           <span className="text-[12px] font-[400] text-[#000000]">
-                            {post.profile?.username ||
-                              post.profiles?.username ||
+                            {post.profile?.displayname ||
+                              post.profiles?.displayname ||
                               "User"}
                           </span>
                           {post.tags_post_join &&
@@ -333,32 +333,36 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="relative">
-                        <button 
-                          onClick={() => setShowDeleteMenu(showDeleteMenu === post.post_id ? null : post.post_id)}
-                          className="p-2 text-gray-600 rounded-full hover:bg-gray-100"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle cx="5" cy="12" r="2" />
-                            <circle cx="12" cy="12" r="2" />
-                            <circle cx="19" cy="12" r="2" />
-                          </svg>
-                        </button>
-                        {showDeleteMenu === post.post_id && (
-                          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
-                            <button
-                              onClick={() => {
-                                handleDeletePost(post.post_id);
-                                setShowDeleteMenu(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 rounded-lg text-sm"
+                        {user?.id === post.user_id && (
+                          <>
+                            <button 
+                              onClick={() => setShowDeleteMenu(showDeleteMenu === post.post_id ? null : post.post_id)}
+                              className="p-2 text-gray-600 rounded-full hover:bg-gray-100"
                             >
-                              Delete
+                              <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle cx="5" cy="12" r="2" />
+                                <circle cx="12" cy="12" r="2" />
+                                <circle cx="19" cy="12" r="2" />
+                              </svg>
                             </button>
-                          </div>
+                            {showDeleteMenu === post.post_id && (
+                              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                                <button
+                                  onClick={() => {
+                                    handleDeletePost(post.post_id);
+                                    setShowDeleteMenu(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 rounded-lg text-sm"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
