@@ -9,7 +9,7 @@ function FriendItem({ friend, onFriendClick, onDeleteChat }) {
   
   const isGroup = members && members.length > 0;
   const chatUrl = isGroup 
-    ? `/chat/group?members=${id}` 
+    ? `/chat/${id}` // Brug thread ID direkte for grupper 
     : href("/chat/:threadId", { threadId: id });
   
   const handleClick = (e) => {

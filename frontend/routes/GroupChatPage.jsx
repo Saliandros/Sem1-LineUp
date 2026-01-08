@@ -2,6 +2,7 @@ import React from "react";
 import { useLoaderData, Link } from "react-router";
 import { ChatMessages, ChatInput } from "../components/Chat.jsx";
 import { fetchAllUsersAsFriends, getFriendsMap } from "../data/friends.js";
+import { fetchMessages, getThread, getThreadParticipants, sendMessage } from "../data/messages.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
 // Modal for adding more people to existing group
@@ -133,63 +134,55 @@ export async function loader({ request }) {
     throw new Response("No members specified", { status: 400 });
   }
 
+  const memberIds = membersParam.split(",");
+  
+  // Find eksisterende gruppe thread med disse deltagere
+  // Dette er en simplificeret version - i praksis skulle vi søge i database
   const allFriends = await fetchAllUsersAsFriends();
   const friendsMap = await getFriendsMap();
-  const memberIds = membersParam.split(",");
+  
   const members = memberIds.map((id) => ({
     id,
-    name: friendsMap[id] || "Unknown",
+    name: friendsMap[id] || allFriends.find(f => f.id === id)?.title || "Unknown",
     avatar: allFriends.find((f) => f.id === id)?.avatar,
   }));
+
   const availableFriends = allFriends.filter((f) => !memberIds.includes(f.id));
   const groupName = members.map((m) => m.name.split(" ")[0]).join(", ");
-  const groupId = memberIds.sort().join(",");
 
-  // Hardcoded demo beskeder
-  const demoMessages = [
-    {
-      id: 1,
-      type: "friend",
-      content: "Hey everyone! Ready for the project discussion?",
-      senderId: memberIds[0],
-      avatar: members[0]?.avatar || "/assets/icons/user-circle.svg",
-      timestamp: "10:30",
-    },
-    {
-      id: 2,
-      type: "friend",
-      content: "Yes! I have some ideas to share",
-      senderId: memberIds[1] || memberIds[0],
-      avatar:
-        members[1]?.avatar ||
-        members[0]?.avatar ||
-        "/assets/icons/user-circle.svg",
-      timestamp: "10:31",
-    },
-    {
-      id: 3,
-      type: "user",
-      content: "Great! Let's start with the frontend design",
-      timestamp: "10:32",
-    },
-    {
-      id: 4,
-      type: "friend",
-      content: "I can work on the backend API integration",
-      senderId: memberIds[0],
-      avatar: members[0]?.avatar || "/assets/icons/user-circle.svg",
-      timestamp: "10:33",
-    },
-  ];
+  // Prøv at finde en gruppe thread med disse medlemmer
+  // For nu bruger vi localStorage data hvis tilgængelig
+  let groupThread = null;
+  let initialMessages = [];
+  
+  try {
+    const storedGroups = JSON.parse(localStorage.getItem("groupChats")) || [];
+    const matchingGroup = storedGroups.find(group => 
+      group.memberIds && 
+      group.memberIds.length === memberIds.length &&
+      group.memberIds.every(id => memberIds.includes(id))
+    );
+    
+    if (matchingGroup && matchingGroup.id) {
+      // Hent thread fra database
+      groupThread = await getThread(matchingGroup.id);
+      if (groupThread) {
+        initialMessages = await fetchMessages(matchingGroup.id);
+      }
+    }
+  } catch (error) {
+    console.error("Error loading group thread:", error);
+  }
 
   return {
     groupName,
     members,
     memberIds,
-    chatId: groupId,
+    chatId: groupThread?.thread_id || `group-${memberIds.sort().join("-")}`,
     availableFriends,
     friendsMap,
-    demoMessages,
+    groupThread,
+    initialMessages: initialMessages || [],
   };
 }
 
@@ -201,16 +194,18 @@ export default function GroupChatPage() {
     chatId,
     availableFriends,
     friendsMap,
-    demoMessages,
+    groupThread,
+    initialMessages,
   } = useLoaderData();
   const { user } = useAuth();
 
   const [showAddPeopleModal, setShowAddPeopleModal] = React.useState(false);
-  const [messages, setMessages] = React.useState(demoMessages);
+  const [messages, setMessages] = React.useState(initialMessages || []);
   const [customGroupName, setCustomGroupName] = React.useState("");
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [showMembersDropdown, setShowMembersDropdown] = React.useState(false);
   const [groupAvatar, setGroupAvatar] = React.useState("");
+  const [isRealGroup, setIsRealGroup] = React.useState(!!groupThread);
   const messagesEndRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
 
@@ -240,10 +235,10 @@ export default function GroupChatPage() {
     return [...members, selfEntry];
   }, [members, user?.id, currentUserProfile?.title, userAvatar]);
 
-  // Set initial messages to demo
+  // Set initial messages from loader data
   React.useEffect(() => {
-    setMessages(demoMessages);
-  }, []);
+    setMessages(initialMessages || []);
+  }, [initialMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -253,19 +248,43 @@ export default function GroupChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (messageText) => {
-    // Demo mode - add message to display but don't persist
-    const newMessage = {
-      id: `m${Date.now()}`,
-      type: "user",
-      content: messageText,
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      avatar: userAvatar,
-    };
-    setMessages((prev) => [...prev, newMessage]);
+  const handleSendMessage = async (messageText) => {
+    if (!user?.id) return;
+
+    if (isRealGroup && groupThread?.thread_id) {
+      // Real group chat - send to database
+      try {
+        const result = await sendMessage(groupThread.thread_id, user.id, messageText);
+        if (result) {
+          // Transform database message to display format
+          const displayMessage = {
+            id: result.message_id || result.id,
+            type: "user",
+            content: result.message_content,
+            senderId: result.user_id,
+            avatar: userAvatar,
+            created_at: result.created_at,
+          };
+          setMessages(prev => [...prev, displayMessage]);
+        }
+      } catch (error) {
+        console.error("Error sending message:", error);
+        alert("Failed to send message");
+      }
+    } else {
+      // Demo mode - add message to display but don't persist
+      const newMessage = {
+        id: `m${Date.now()}`,
+        type: "user",
+        content: messageText,
+        timestamp: new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        avatar: userAvatar,
+      };
+      setMessages((prev) => [...prev, newMessage]);
+    }
   };
 
   const handleSaveGroupName = (newName) => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLoaderData, Link } from "react-router";
 import Navbar from "../components/Navbar.jsx";
 import ChatListItem from "../components/ChatListItem.jsx";
-import { getUserThreads, deleteThread } from "../data/messages.js";
+import { getUserThreads, deleteThread, getUserGroupThreads, getThreadParticipantsWithProfiles } from "../data/messages.js";
 import { fetchAllUsersAsFriends } from "../data/friends.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
@@ -32,8 +32,10 @@ export default function ChatListRoute() {
         const threads = await getUserThreads(user.id);
         const allUsersAsFriends = await fetchAllUsersAsFriends();
 
-        // For hver thread, hent participants for at finde den anden bruger
-        const chatsPromises = threads.map(async (thread) => {
+        // Filter threads til kun 1-on-1 chats (2 deltagere)
+        const oneOnOneChats = [];
+        
+        for (const thread of threads) {
           // Hent participants for denne thread
           const { data: participants, error } = await supabase
             .from("thread_participants")
@@ -42,35 +44,35 @@ export default function ChatListRoute() {
 
           if (error) {
             console.error("Error fetching participants:", error);
-            return null;
+            continue;
           }
 
-          // Find den anden bruger (ikke den nuværende bruger)
-          const otherUserId = participants
-            ?.map(p => p.user_id)
-            .find(id => id !== user.id);
+          // Kun threads med præcis 2 deltagere er 1-on-1 chats
+          if (participants && participants.length === 2) {
+            const otherUserId = participants
+              .map(p => p.user_id)
+              .find(id => id !== user.id);
 
-          if (!otherUserId) return null;
+            if (otherUserId) {
+              const friendData = allUsersAsFriends.find(
+                (f) => f.id === otherUserId
+              );
 
-          const friendData = allUsersAsFriends.find(
-            (f) => f.id === otherUserId
-          );
+              oneOnOneChats.push({
+                id: thread.thread_id,
+                title: friendData?.title || friendData?.displayname || "Unknown",
+                avatar: friendData?.user_image || friendData?.avatar,
+                currentUser: {
+                  id: user.id,
+                  avatar: user.user_image,
+                  username: user.username,
+                },
+              });
+            }
+          }
+        }
 
-          return {
-            id: thread.thread_id,
-            title: friendData?.title || friendData?.displayname || "Unknown",
-            avatar: friendData?.user_image || friendData?.avatar,
-            currentUser: {
-              id: user.id,
-              avatar: user.user_image,
-              username: user.username,
-            },
-          };
-        });
-
-        const chats = (await Promise.all(chatsPromises)).filter(Boolean);
-
-        setActiveChats(chats);
+        setActiveChats(oneOnOneChats);
         setAllFriends(allUsersAsFriends);
       } catch (error) {
         console.error("Error loading data:", error);
@@ -82,20 +84,79 @@ export default function ChatListRoute() {
     loadData();
   }, [user?.id]);
 
-  // Load group chats saved locally (created from group chat flow)
+  // Hent gruppe threads fra databasen
   useEffect(() => {
-    if (!user?.id) return;
-    try {
-      const stored = JSON.parse(localStorage.getItem("groupChats")) || [];
-      // Only show groups the current user is part of
-      const userGroups = stored.filter(
-        (g) => Array.isArray(g.memberIds) && g.memberIds.includes(user.id)
-      );
-      setGroups(userGroups);
-    } catch (err) {
-      console.error("Failed to load stored group chats:", err);
-    }
+    const loadGroupData = async () => {
+      if (!user?.id) return;
+
+      try {
+        const groupThreads = await getUserGroupThreads(user.id);
+        
+        // For hver gruppe thread, hent deltagernes navne til at lave en titel
+        const groupsWithTitles = await Promise.all(
+          groupThreads.map(async (thread) => {
+            console.log("🏷️ Processing group thread:", thread.thread_id, "group_name:", thread.group_name);
+            
+            const participants = await getThreadParticipantsWithProfiles(thread.thread_id);
+            console.log("🏷️ Participants for thread:", thread.thread_id, participants);
+            
+            // Brug gruppe navn hvis det findes, ellers brug deltager navne
+            let title = thread.group_name;
+            if (!title) {
+              const participantNames = participants
+                .filter(p => p.id !== user.id) // Udeluk nuværende bruger
+                .map(p => p.displayname || "Unknown")
+                .slice(0, 3); // Kun de første 3 navne
+              
+              title = participantNames.join(", ");
+              if (participants.length > 4) { // 3 andre + nuværende bruger
+                title += "...";
+              }
+            }
+
+            console.log("🏷️ Final group title:", title);
+
+            return {
+              id: thread.thread_id,
+              title: title || "Group Chat",
+              memberIds: participants.map(p => p.id),
+              members: participants.map(p => p.displayname || "Unknown"),
+              avatar: thread.group_image || null, // Brug det uploadede gruppe billede
+              created: thread.created_at,
+            };
+          })
+        );
+
+        setGroups(groupsWithTitles);
+      } catch (error) {
+        console.error("Error loading group data:", error);
+      }
+    };
+
+    loadGroupData();
   }, [user?.id]);
+
+  // Lyt efter gruppe billede opdateringer
+  useEffect(() => {
+    const handleGroupImageUpdate = (event) => {
+      const { threadId, imageUrl } = event.detail;
+      
+      // Opdater det specifikke gruppe billede i state
+      setGroups(prevGroups => 
+        prevGroups.map(group => 
+          group.id === threadId 
+            ? { ...group, avatar: imageUrl }
+            : group
+        )
+      );
+    };
+
+    window.addEventListener('groupImageUpdated', handleGroupImageUpdate);
+    
+    return () => {
+      window.removeEventListener('groupImageUpdated', handleGroupImageUpdate);
+    };
+  }, []);
 
   const filteredChats = activeChats.filter((chat) =>
     chat.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -117,18 +178,17 @@ export default function ChatListRoute() {
     }
   };
 
-  const handleDeleteGroup = (groupId) => {
-    setGroups((prev) => {
-      const updated = prev.filter((group) => group.id !== groupId);
-      try {
-        const stored = JSON.parse(localStorage.getItem("groupChats")) || [];
-        const filtered = stored.filter((g) => g.id !== groupId);
-        localStorage.setItem("groupChats", JSON.stringify(filtered));
-      } catch (err) {
-        console.error("Failed to update stored group chats:", err);
-      }
-      return updated;
-    });
+  const handleDeleteGroup = async (groupId) => {
+    const previousGroups = groups;
+    setGroups((prev) => prev.filter((group) => group.id !== groupId));
+    try {
+      // Slet gruppe thread fra databasen
+      await deleteThread(groupId);
+    } catch (error) {
+      console.error("Failed to delete group thread:", error);
+      // Gendan hvis det fejler
+      setGroups(previousGroups);
+    }
   };
 
   return (

@@ -1,18 +1,25 @@
 import React from "react";
 
-function Message({ type = "user", children, avatar, showAvatar }) {
+function Message({ type = "user", children, avatar, showAvatar, senderName }) {
   const isUser = type === "user";
   return (
     <div
       className={`flex mb-1 px-4 ${isUser ? "justify-end" : "justify-start"}`}
     >
       {!isUser && showAvatar && (
-        <div className="w-10 h-10 mr-2 overflow-hidden bg-gray-300 rounded-full shrink-0">
+        <div className="w-10 h-10 mr-2 overflow-hidden bg-gray-300 rounded-full shrink-0 relative group">
           <img
             src={avatar}
             alt="Friend avatar"
             className="object-cover w-full h-full"
+            title={senderName} // Fallback tooltip
           />
+          {/* CSS Tooltip */}
+          {senderName && (
+            <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+              {senderName}
+            </div>
+          )}
         </div>
       )}
       <div
@@ -21,26 +28,33 @@ function Message({ type = "user", children, avatar, showAvatar }) {
         {children}
       </div>
       {isUser && showAvatar && (
-        <div className="w-10 h-10 ml-2 overflow-hidden bg-gray-300 rounded-full shrink-0">
+        <div className="w-10 h-10 ml-2 overflow-hidden bg-gray-300 rounded-full shrink-0 relative group">
           <img
             src={avatar}
             alt="Your avatar"
             className="object-cover w-full h-full"
+            title="You" // Fallback tooltip
           />
+          {/* CSS Tooltip */}
+          <div className="absolute bottom-12 right-1/2 transform translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+            You
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function ChatMessages({ messages = [], currentUser, friendAvatar }) {
+function ChatMessages({ messages = [], currentUser, friendAvatar, showTyping = false }) {
   return (
     <div className="flex-1 py-4 overflow-y-auto">
       {messages.map((message) => {
-        // BRUG message.senderId I STEDET FOR message.sender_id
         const isCurrentUser = message.senderId === currentUser?.id;
         const messageType = isCurrentUser ? "user" : "friend";
-        const avatar = isCurrentUser ? currentUser?.avatar : friendAvatar;
+        // Brug avatar fra message data (vigtig for gruppechats!)
+        const avatar = message.avatar || (isCurrentUser ? currentUser?.avatar : friendAvatar);
+
+        console.log("💬 Message from:", message.senderId, "isCurrentUser:", isCurrentUser, "avatar:", avatar);
 
         return (
           <Message
@@ -48,11 +62,34 @@ function ChatMessages({ messages = [], currentUser, friendAvatar }) {
             type={messageType}
             avatar={avatar}
             showAvatar={true}
+            senderName={message.senderName}
           >
             {message.content}
           </Message>
         );
       })}
+      
+      {/* Typing indicator */}
+      {showTyping && (
+        <div className="flex mb-1 px-4 justify-start">
+          <div className="w-10 h-10 mr-2 overflow-hidden bg-gray-300 rounded-full shrink-0">
+            <img
+              src={friendAvatar}
+              alt="Friend avatar"
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <div className="max-w-[70%] rounded-2xl px-4 py-3 bg-gray-200 text-gray-900">
+            <div className="flex items-center space-x-1">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

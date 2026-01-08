@@ -127,7 +127,7 @@ export async function getUserProfile(userId) {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, username, user_image")
+      .select("id, displayname, user_image")
       .eq("id", userId)
       .single();
 
@@ -136,7 +136,7 @@ export async function getUserProfile(userId) {
     return data
       ? {
           id: data.id,
-          username: data.username,
+          displayname: data.displayname,
           user_image: data.user_image,
         }
       : null;
