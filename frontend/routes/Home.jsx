@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import { fetchAllUsersAsFriends } from "../data/friends.js";
 import { useLoaderData } from "react-router";
 import { useChat } from "../hooks/useChat.js";
+import { supabase } from "../lib/supabaseClient.js";
 
 export async function clientLoader() {
   try {
@@ -92,13 +93,17 @@ export default function Home() {
   const navigate = useNavigate();
 
   const handleDeletePost = async (postId) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
+    console.log('handleDeletePost called with:', postId);
     
     try {
       const VITE_API_URL = import.meta.env.VITE_API_URL;
-      const { data: { session } } = await import('../lib/supabaseClient.js').then(m => m.supabase.auth.getSession());
+      console.log('VITE_API_URL:', VITE_API_URL);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session:', session?.user?.id);
       
       if (!session?.access_token) {
+        console.error('No access token');
         alert('Not authenticated');
         return;
       }
@@ -114,13 +119,18 @@ export default function Home() {
         }
       });
       
+      console.log('Response received:', response.status);
       const data = await response.json();
       console.log('Delete response:', response.status, data);
       
       if (response.ok) {
+        console.log('Delete successful!');
+        setShowDeleteMenu(null);
         alert('Post deleted successfully');
         window.location.reload();
       } else {
+        console.log('Delete failed:', data);
+        setShowDeleteMenu(null);
         alert(`Failed to delete post: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
@@ -349,7 +359,12 @@ export default function Home() {
                         {user?.id === post.user_id && (
                           <>
                             <button 
-                              onClick={() => setShowDeleteMenu(showDeleteMenu === post.post_id ? null : post.post_id)}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setShowDeleteMenu(showDeleteMenu === post.post_id ? null : post.post_id);
+                              }}
                               className="p-2 text-gray-600 rounded-full hover:bg-gray-100"
                             >
                               <svg
@@ -365,9 +380,12 @@ export default function Home() {
                             {showDeleteMenu === post.post_id && (
                               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
                                 <button
-                                  onClick={() => {
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Delete button clicked');
                                     handleDeletePost(post.post_id);
-                                    setShowDeleteMenu(null);
                                   }}
                                   className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 rounded-lg text-sm"
                                 >
