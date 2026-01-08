@@ -98,21 +98,34 @@ export default function Home() {
       const VITE_API_URL = import.meta.env.VITE_API_URL;
       const { data: { session } } = await import('../lib/supabaseClient.js').then(m => m.supabase.auth.getSession());
       
+      if (!session?.access_token) {
+        alert('Not authenticated');
+        return;
+      }
+
+      console.log('Deleting post:', postId);
+      console.log('User ID:', user?.id);
+      
       const response = await fetch(`${VITE_API_URL}/api/posts/${postId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
       
+      const data = await response.json();
+      console.log('Delete response:', response.status, data);
+      
       if (response.ok) {
-        window.location.reload(); // Reload to show updated list
+        alert('Post deleted successfully');
+        window.location.reload();
       } else {
-        alert('Failed to delete post');
+        alert(`Failed to delete post: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('Failed to delete post');
+      alert(`Error: ${error.message}`);
     }
   };
 

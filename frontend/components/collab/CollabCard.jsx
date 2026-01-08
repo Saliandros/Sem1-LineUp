@@ -24,21 +24,35 @@ export default function CollabCard({
       const VITE_API_URL = import.meta.env.VITE_API_URL;
       const { data: { session } } = await supabase.auth.getSession();
       
+      if (!session?.access_token) {
+        alert('Not authenticated');
+        return;
+      }
+
+      console.log('Deleting collab:', collabId);
+      console.log('User ID:', currentUserId);
+      console.log('Collab owner:', collaboration.user_id);
+      
       const response = await fetch(`${VITE_API_URL}/api/collaborations/${collabId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
       
+      const data = await response.json();
+      console.log('Delete response:', response.status, data);
+      
       if (response.ok) {
+        alert('Collaboration deleted successfully');
         window.location.reload();
       } else {
-        alert('Failed to delete collaboration');
+        alert(`Failed to delete collaboration: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting collaboration:', error);
-      alert('Failed to delete collaboration');
+      alert(`Error: ${error.message}`);
     }
   };
 
