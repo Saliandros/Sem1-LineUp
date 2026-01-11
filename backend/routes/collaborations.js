@@ -184,17 +184,23 @@ router.post(
         const filename = `${userId}/${Date.now()}_${uploadedFile.originalname}`;
 
         try {
-          const { error: uploadError } = await supabase.storage
+          const { data, error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(filename, uploadedFile.buffer, {
               contentType: uploadedFile.mimetype,
+              upsert: false
             });
 
           if (uploadError) {
             console.error("🔴 Supabase storage upload error:", uploadError);
+            console.error("Bucket:", bucket);
+            console.error("Filename:", filename);
+            console.error("User ID:", userId);
             return res.status(500).json({
               error: "Failed to upload image",
-              details: uploadError,
+              details: uploadError.message,
+              bucket: bucket,
+              hint: "Check if storage bucket exists and RLS policies allow insert"
             });
           }
 
@@ -203,6 +209,7 @@ router.post(
             .getPublicUrl(filename);
 
           collab_image_url = urlData?.publicUrl || null;
+          console.log("✅ Image uploaded successfully:", collab_image_url);
         } catch (err) {
           console.error("🔴 Exception during Supabase upload:", err);
           return res.status(500).json({

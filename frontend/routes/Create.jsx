@@ -50,7 +50,7 @@ export async function clientAction({ request }) {
     console.log("Success:", result);
 
     if (submissionTarget === "collaborations") {
-      return redirect("/services");
+      return redirect("/collabs");
     }
     return redirect("/");
   } catch (error) {
@@ -61,7 +61,7 @@ export async function clientAction({ request }) {
 
 export default function Create() {
   return (
-    <div className="create-page">
+    <div className="create-page pb-32 pt-6">
       <nav className="flex justify-center gap-9">
         <NavLink
           to="note"

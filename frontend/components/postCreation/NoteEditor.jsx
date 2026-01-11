@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Form, useLoaderData } from "react-router-dom";
+import { Form, useLoaderData, useActionData } from "react-router-dom";
 import TitleComponent from "./formComponents/Title";
 import MediaComponent from "./formComponents/Media";
 import TagComponent from "./formComponents/Tag";
-import AddPeople from "./formComponents/AddPeople";
 import DescriptionComponent from "./formComponents/Description";
 import { getCurrentUserProfile } from "../../lib/api.js";
 
@@ -19,6 +18,7 @@ export async function clientLoader() {
 
 export default function NoteEditor() {
   const loaderData = useLoaderData();
+  const actionData = useActionData();
 
   const profileData = loaderData?.profile;
 
@@ -47,15 +47,15 @@ export default function NoteEditor() {
         method="post"
         action=".."
         encType="multipart/form-data"
-        className="flex flex-col gap-6 px-4"
+        className="flex flex-col gap-6 px-4 pb-24"
       >
+        {actionData?.error && (
+          <div className="bg-red-500 text-white p-4 rounded-lg">
+            <p className="font-semibold">Fejl ved oprettelse:</p>
+            <p>{actionData.error}</p>
+          </div>
+        )}
         <input type="hidden" name="submission_target" value="posts" />
-
-        <AddPeople
-          name={profileData?.displayname || "Bruger"}
-          image={profileData?.user_image || ""}
-          alt={`${profileData?.displayname || "User"}'s profile picture`}
-        />
 
         <TagComponent
           onChangeTags={setTags}

@@ -5,7 +5,11 @@ export default function AddPeople({ name, image, alt }) {
         <img className="w-10 h-10 rounded-full" src={image} alt={alt} />
         <h3>{name}</h3>
       </div>
-      <button className="px-2 py-1 rounded-full primary-btn bg-primary-yellow h-fit">
+      <button 
+        type="button"
+        onClick={() => alert('Add people functionality coming soon')}
+        className="px-2 py-1 rounded-full primary-btn bg-primary-yellow h-fit"
+      >
         <span className="text-3.5">+ Add people</span>
       </button>
     </section>
