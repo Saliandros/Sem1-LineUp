@@ -7,30 +7,30 @@ import {
 
 export default [
   // Public routes
-  layout("./routes/PublicLayout.jsx", [
-    route("get-started", "./routes/GetStarted.jsx"),
-    route("login", "./routes/Login.jsx"),
-    route("register", "./routes/Register.jsx"),
+  layout("./routes/layouts/PublicLayout.jsx", [
+    route("get-started", "./routes/auth/GetStarted.jsx"),
+    route("login", "./routes/auth/Login.jsx"),
+    route("register", "./routes/auth/Register.jsx"),
   ]),
 
   // Protected routes with navigation
-  layout("./routes/ProtectedLayout.jsx", [
-    layout("./routes/Root.jsx", [
-      index("./routes/Home.jsx"),
-      route("profile", "./routes/Profile.jsx"),
-      route("profile/:userId", "./routes/Profile.jsx", { id: "user-profile" }),
-      route("notes", "./routes/Notes.jsx"),
-      route("edit-profile", "./routes/EditProfile.jsx"),
-      route("collabs", "./routes/Services.jsx"),
-      route("create", "./routes/Create.jsx", [
-        index("./routes/create/IndexRedirect.jsx"),
+  layout("./routes/layouts/ProtectedLayout.jsx", [
+    layout("./routes/layouts/Root.jsx", [
+      index("./routes/core/Home.jsx"),
+      route("profile", "./routes/profiles/Profile.jsx"),
+      route("profile/:userId", "./routes/profiles/Profile.jsx", { id: "user-profile" }),
+      route("notes", "./routes/features/Notes.jsx"),
+      route("edit-profile", "./routes/profiles/EditProfile.jsx"),
+      route("collabs", "./routes/core/Services.jsx"),
+      route("create", "./routes/posts/Create.jsx", [
+        index("./routes/posts/create/IndexRedirect.jsx"),
         route("note", "./components/postCreation/NoteEditor.jsx"),
         route("request", "./components/postCreation/RequestEditor.jsx"),
       ]),
-      route("chat", "./routes/ChatList.jsx"),
-      route("chat/new", "./routes/NewChatPage.jsx"),
-      route("chat/group", "./routes/GroupChatPage.jsx"),
-      route("chat/:threadId", "./routes/OneToOneChatPage.jsx"),
+      route("chat", "./routes/chat/ChatList.jsx"),
+      route("chat/new", "./routes/chat/NewChatPage.jsx"),
+      route("chat/group", "./routes/chat/GroupChatPage.jsx"),
+      route("chat/:threadId", "./routes/chat/OneToOneChatPage.jsx"),
     ]),
   ]),
 ] satisfies RouteConfig;

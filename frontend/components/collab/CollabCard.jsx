@@ -219,10 +219,7 @@ export default function CollabCard({
               <div className="font-medium">
                 {(collab.author?.username || "Someone").split(" ")[0]}
                 <span className="ml-1" style={{ color: "#4D3F54" }}>
-                  looking for a
-                </span>
-                <span className="ml-1 text-sm" style={{ color: "#4D3F54" }}>
-                  #{dynamicKeyword}
+                  requested
                 </span>
               </div>
             </div>
