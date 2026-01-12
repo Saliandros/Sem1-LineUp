@@ -1,3 +1,58 @@
+/**
+ * posts.js - Posts/Notes API Routes
+ * ===================================
+ * FORMÅL: Håndter CRUD operationer for posts (notes)
+ * 
+ * HVAD ER EN POST?
+ * Et post er en "note" - en deling af musikalsk indhold:
+ * - Story: Kort opdatering
+ * - Note: Længere indlæg med medie
+ * - Request: Søger noget specifikt
+ * 
+ * DATABASE TABEL: post_note
+ * Felter:
+ * - post_id (UUID, primary key)
+ * - user_id (UUID, foreign key til profiles)
+ * - post_title (text)
+ * - post_body (text)
+ * - post_type (text) - story/note/request
+ * - post_media (text URL)
+ * - created_at (timestamp)
+ * 
+ * TAGS SYSTEM:
+ * Posts kan have tags via junction table:
+ * - tags_post_join (post_id, tag_id)
+ * - tags (tag_id, tag_name)
+ * Mange-til-mange relation
+ * 
+ * ENDPOINTS:
+ * GET /api/posts - Liste alle posts
+ * GET /api/posts/:postId - Hent specifik post
+ * GET /api/posts/user/:userId - Brugerens posts
+ * POST /api/posts - Opret ny post
+ * PUT /api/posts/:postId - Opdater post
+ * DELETE /api/posts/:postId - Slet post
+ * 
+ * FILE UPLOAD:
+ * Bruger Multer til multipart/form-data
+ * - post_media: Billede/video/audio fil
+ * Upload til Supabase Storage
+ * 
+ * AUTHORIZATION:
+ * - Læsning: optionalAuth (alle kan se)
+ * - Oprettelse: authenticate (kun logged in)
+ * - Opdatering: authenticate + ownership
+ * - Sletning: authenticate + ownership
+ * 
+ * PROFILE ENRICHMENT:
+ * Posts fetches med profile data joined:
+ * - displayname
+ * - user_image
+ * Så frontend får complete data i én query
+ * 
+ * LAVET AF: Mikkel Ruby
+ */
+
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { authenticate, optionalAuth } from "../middleware/auth.js";
@@ -7,7 +62,7 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Get all posts
+// GET /api/posts - Hent alle posts med profiles
 router.get("/", optionalAuth, async (req, res) => {
   try {
     const { data, error } = await supabase

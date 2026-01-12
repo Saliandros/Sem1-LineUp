@@ -1,3 +1,53 @@
+/**
+ * OneToOneChatPage.jsx
+ * =====================
+ * FORMÅL: Hovedkomponent for 1-til-1 og gruppe chat funktionalitet
+ * 
+ * HVAD GIVER DENNE SIDE:
+ * - Viser en komplet chat interface med beskeder mellem brugere
+ * - Understøtter både 1-til-1 chats og gruppe chats (3+ personer)
+ * - Real-time beskeder via Supabase subscriptions
+ * - Mulighed for at tilføje flere personer til en chat (konverter til gruppe)
+ * - Redigering af gruppe navn og billede
+ * 
+ * TEKNISKE KONCEPTER:
+ * 1. CLIENT-SIDE DATA LOADING (clientLoader):
+ *    - Bruger React Router 7's clientLoader i stedet for server loader
+ *    - Henter data på klient-siden for at undgå Single Fetch problemer
+ *    - Loader thread data og beskeder før komponenten renderer
+ * 
+ * 2. REAL-TIME SUBSCRIPTIONS:
+ *    - Supabase Realtime lytter efter nye beskeder i databasen
+ *    - Når andre sender beskeder, opdateres UI automatisk
+ *    - Bruger PostgreSQL's LISTEN/NOTIFY funktionalitet
+ * 
+ * 3. OPTIMISTIC UPDATES:
+ *    - Når du sender en besked, vises den med det samme
+ *    - Ingen ventetid på server response
+ *    - Giver bedre brugeroplevelse
+ * 
+ * 4. STATE MANAGEMENT:
+ *    - useState hooks til at holde styr på beskeder, brugere, UI state
+ *    - useEffect hooks til at hente data og sætte subscriptions op
+ *    - Ref hooks til scroll funktionalitet
+ * 
+ * EKSAMENSSPØRGSMÅL DU KAN BLIVE STILLET:
+ * Q: "Hvorfor bruger I clientLoader og ikke bare loader?"
+ * A: "React Router 7 har Single Fetch mode som standard, der forsøger at hente 
+ *     data via .data endpoints på serveren. Vi bruger clientLoader for at køre
+ *     data loading på klienten og undgå 404 fejl fra Single Fetch."
+ * 
+ * Q: "Hvordan virker real-time chat?"
+ * A: "Vi bruger Supabase Realtime som lytter til INSERT events i messages tabellen.
+ *     Når en ny besked indsættes, trigger PostgreSQL en notifikation via websocket,
+ *     og vores useEffect hook modtager den og opdaterer state."
+ * 
+ * Q: "Hvad er forskellen på 1-til-1 chat og gruppe chat?"
+ * A: "Vi tjekker antal deltagere i thread_participants. Hvis <= 2 er det 1-til-1,
+ *     hvis > 2 er det gruppe. Gruppechats har ekstra features som gruppe navn,
+ *     gruppe billede, og forskellige besked visning med afsender navne."
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { useLoaderData, Link } from "react-router";
 import { ChatMessages, ChatInput } from "../../components/chat/Chat.jsx";
@@ -11,7 +61,21 @@ import { sendMessage, getOrCreateThread, getThread, addParticipantsToThread, get
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
 
-// Simple friend item for selection (without last message)
+/**
+ * SelectableFriendItem Component
+ * ===============================
+ * FORMÅL: Viser en ven i listen når man skal tilføje personer til chat
+ * 
+ * PROPS:
+ * - friend: Bruger objekt med id, title, avatar
+ * - isSelected: Boolean om denne ven er valgt
+ * - onToggle: Callback når man klikker (tilføj/fjern fra valgte)
+ * 
+ * UI DETALJER:
+ * - Checkmark vises når selected
+ * - Hover effekt på hele knappen
+ * - Bruger Tailwind CSS til styling
+ */
 function SelectableFriendItem({ friend, isSelected, onToggle }) {
   const avatar = friend.avatar || "/assets/icons/user-circle.svg";
 
@@ -59,11 +123,26 @@ function SelectableFriendItem({ friend, isSelected, onToggle }) {
   );
 }
 
-// Modal for converting 1-to-1 chat to group
+/**
+ * AddPeopleModal Component
+ * ========================
+ * FORMÅL: Fuld-skærm modal til at vælge venner der skal tilføjes til chatten
+ * 
+ * FUNKTIONALITET:
+ * - Viser liste af alle dine venner (minus dem allerede i chatten)
+ * - Multi-select med checkboxes
+ * - "Add to conversation" knap aktiveres når mindst én er valgt
+ * - Når man tilføjer folk, oprettes en NY gruppe chat med alle
+ * 
+ * VIGTIGT DESIGN VALG:
+ * Vi opretter en NY thread i stedet for at tilføje til eksisterende,
+ * fordi det giver en klar separation mellem 1-til-1 og gruppe historik
+ */
 function AddPeopleModal({ currentFriendId, onClose, availableFriends, onAddPeople, threadId }) {
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
 
+  // Toggle mellem selected/unselected når man klikker på en ven
   const toggleFriend = (friendId) => {
     setSelectedFriends((prev) =>
       prev.includes(friendId)
@@ -150,25 +229,91 @@ function AddPeopleModal({ currentFriendId, onClose, availableFriends, onAddPeopl
   );
 }
 
-export async function loader({ params }) {
-  const { threadId } = params;
+/**
+ * clientLoader Function
+ * =====================
+ * FORMÅL: Hent data før komponenten renderer (React Router 7 data loading)
+ * 
+ * HVORFOR clientLoader OG IKKE loader?
+ * - React Router 7 introducerede "Single Fetch" mode
+ * - loader() kører på serveren og forsøger at serve data via .data endpoints
+ * - clientLoader() kører på klienten og undgår denne kompleksitet
+ * - Vi har ikke en fuld SSR setup, så clientLoader er nemmere
+ * 
+ * HVAD SKER HER:
+ * 1. Udtrækker threadId fra URL parameteren (/chat/:threadId)
+ * 2. Kalder getThread() for at hente thread metadata fra backend
+ * 3. Kalder fetchMessages() for at hente alle beskeder i denne thread
+ * 4. Returnerer data som bliver tilgængelig via useLoaderData() hook
+ * 
+ * ERROR HANDLING:
+ * - Hvis thread ikke findes, throw 404 response
+ * - React Router fanger fejlen og viser error boundary
+ * 
+ * EKSAMENSSPØRGSMÅL:
+ * Q: "Hvad er forskellen på loader og clientLoader?"
+ * A: "loader kører på serveren under SSR, clientLoader kører kun på klienten.
+ *     clientLoader er bedre til at kalde eksterne APIs fordi det sker i
+ *     brugerens browser hvor auth tokens er tilgængelige."
+ */
+export async function clientLoader({ params }) {
+  try {
+    const { threadId } = params;
+    console.log("🔍 OneToOneChatPage clientLoader - threadId:", threadId);
 
-  // Verificer at tråden eksisterer i databasen
-  const thread = await getThread(threadId);
-  if (!thread) {
-    throw new Response("Thread not found", { status: 404 });
+    // Verificer at tråden eksisterer i databasen
+    const thread = await getThread(threadId);
+    console.log("📋 Thread data:", thread);
+    
+    if (!thread) {
+      console.error("❌ Thread not found");
+      throw new Response("Thread not found", { status: 404 });
+    }
+
+    const rawMessages = await fetchMessages(threadId);
+    console.log("✅ Messages loaded:", rawMessages?.length || 0);
+
+    return {
+      thread,
+      threadId,
+      chatId: threadId,
+      initialMessages: rawMessages,
+    };
+  } catch (error) {
+    console.error("❌ OneToOneChatPage clientLoader error:", error);
+    throw error;
   }
-
-  const rawMessages = await fetchMessages(threadId);
-
-  return {
-    thread,
-    threadId,
-    chatId: threadId,
-    initialMessages: rawMessages,
-  };
 }
 
+/**
+ * OneToOneChatPage Main Component
+ * ================================
+ * FORMÅL: Render hele chat interfacet og håndter bruger interaktioner
+ * 
+ * STATE FORKLARING (alle useState hooks):
+ * 
+ * showAddPeopleModal: Boolean - viser/skjuler "tilføj personer" modal
+ * rawMessages: Array - rå besked objekter fra databasen
+ * isLoading: Boolean - viser loading state (ikke brugt aktivt pt.)
+ * isSendingMessage: Boolean - viser "typing..." indikator
+ * friends: Array - alle dine venner hentet fra backend
+ * availableFriends: Array - venner der kan tilføjes (ekskl. allerede i chat)
+ * otherUserId: String - ID på den anden person i 1-til-1 chat
+ * otherUser: Object - profil data på den anden person
+ * currentUserProfile: Object - din egen profil data
+ * threadData: Object - metadata om denne chat thread
+ * allParticipants: Array - alle deltagere i chatten
+ * isEditingTitle: Boolean - om man redigerer gruppe navn
+ * editedTitle: String - det nye gruppe navn under redigering
+ * isUploadingImage: Boolean - loading state for billede upload
+ * 
+ * REF FORKLARING (useRef hooks):
+ * messagesEndRef: Reference til bunden af besked listen (til auto-scroll)
+ * fileInputRef: Reference til skjult file input (til gruppe billede upload)
+ * 
+ * REALTIME STATE:
+ * realtimeChannel: Supabase channel objekt for websocket forbindelse
+ */
 export default function OneToOneChatPage() {
   const { thread, threadId, chatId, initialMessages } = useLoaderData();
   const { user } = useAuth();
@@ -191,7 +336,19 @@ export default function OneToOneChatPage() {
   const fileInputRef = useRef(null);
   const [realtimeChannel, setRealtimeChannel] = useState(null);
 
-  // Hent venner når komponenten loader
+  /**
+   * useEffect #1: Load Friends
+   * ==========================
+   * FORMÅL: Hent alle dine venner når komponenten mounted
+   * 
+   * HVORFOR SKAL VI HAVE VENNER I CHAT?
+   * - Bruges til "Add People" funktionaliteten
+   * - Viser navne og profilbilleder i gruppe chats
+   * - Filtreres så man ikke kan tilføje sig selv eller folk allerede i chatten
+   * 
+   * DEPENDENCY ARRAY: []
+   * Tom array betyder "kør kun én gang når komponenten mounter"
+   */
   useEffect(() => {
     const loadFriends = async () => {
       try {
@@ -206,7 +363,23 @@ export default function OneToOneChatPage() {
     loadFriends();
   }, []);
 
-  // Hent nuværende brugers profil
+  /**
+   * useEffect #2: Load Current User Profile
+   * ========================================
+   * FORMÅL: Hent DIN EGEN profil data (navn, profilbillede)
+   * 
+   * HVORFOR?
+   * - Når du sender beskeder skal dit profilbillede vises
+   * - Dit navn skal vises korrekt i UI
+   * - AuthContext giver kun basis bruger info (id, email)
+   * 
+   * DEPENDENCY ARRAY: [user?.id]
+   * Kører igen hvis brugerens ID ændrer sig (login/logout)
+   * 
+   * OPTIONAL CHAINING (?.):
+   * user?.id betyder "kun hvis user eksisterer, få id"
+   * Undgår fejl hvis user er null/undefined
+   */
   useEffect(() => {
     const loadCurrentUserProfile = async () => {
       if (user?.id) {
@@ -224,7 +397,40 @@ export default function OneToOneChatPage() {
     loadCurrentUserProfile();
   }, [user?.id]);
 
-  // Setup realtime subscription for new messages
+  /**
+   * useEffect #3: Realtime Message Subscription
+   * ===========================================
+   * FORMÅL: Lyt efter nye beskeder i real-time via websocket
+   * 
+   * SUPABASE REALTIME FORKLARING:
+   * Supabase bruger PostgreSQL's LISTEN/NOTIFY system over websockets
+   * Når en ny row indsættes i messages tabellen, sender databasen en event
+   * 
+   * TRIN-FOR-TRIN:
+   * 1. Opret en channel med unikt navn (messages-{threadId})
+   * 2. Subscribe til INSERT events på messages tabellen
+   * 3. Filtrer kun beskeder for denne specific thread
+   * 4. Når payload modtages, tjek om det er fra en anden bruger
+   * 5. Tilføj beskeden til state (hvis ikke duplikat)
+   * 6. Cleanup: Fjern subscription når komponenten unmounter
+   * 
+   * DUPLICATE PREVENTION:
+   * Vi tjekker om beskeden allerede eksisterer før vi tilføjer den
+   * Dette forhindrer at din egen besked vises dobbelt (optimistic update + realtime)
+   * 
+   * DEPENDENCY ARRAY: [threadId, user?.id]
+   * Kør igen hvis thread eller bruger ændrer sig
+   * 
+   * CLEANUP FUNCTION:
+   * return () => {...} kører når komponenten unmounter
+   * Vigtigt at fjerne subscription for at undgå memory leaks
+   * 
+   * EKSAMENSSPØRGSMÅL:
+   * Q: "Hvordan virker real-time opdateringer?"
+   * A: "Vi bruger Supabase Realtime der wrapper PostgreSQL's LISTEN/NOTIFY.
+   *     Når INSERT sker i databasen, trigger det en websocket event til alle
+   *     subscribere. Vi modtager payloaden og opdaterer React state."
+   */
   useEffect(() => {
     if (!threadId || !user?.id) return;
 

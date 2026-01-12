@@ -7,19 +7,37 @@ export function useChat(user) {
   const navigate = useNavigate();
 
   const startChat = async (friendId) => {
-    if (creatingThread || !user?.id) return;
+    console.log("🚀 startChat called with friendId:", friendId, "user:", user?.id);
+    
+    if (creatingThread) {
+      console.log("⏳ Already creating thread, skipping...");
+      return;
+    }
+    
+    if (!user?.id) {
+      console.error("❌ No user ID available");
+      return;
+    }
 
     try {
       setCreatingThread(true);
+      console.log("📞 Calling getOrCreateThread...");
+      
       // Tjek om der allerede er en thread med denne person, eller lav en ny
       const thread = await getOrCreateThread(user.id, friendId);
+      
+      console.log("✅ Thread result:", thread);
 
       if (thread && thread.thread_id) {
+        console.log("🔄 Navigating to /chat/" + thread.thread_id);
         // Naviger til chatten
         navigate(`/chat/${thread.thread_id}`);
+      } else {
+        console.error("❌ No thread_id in response:", thread);
       }
     } catch (error) {
-      console.error("Error creating/opening thread:", error);
+      console.error("❌ Error creating/opening thread:", error);
+      alert(`Failed to open chat: ${error.message}`);
     } finally {
       setCreatingThread(false);
     }

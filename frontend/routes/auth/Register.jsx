@@ -1,4 +1,70 @@
 /**
+ * Register.jsx - Fast Registration Flow
+ * ======================================
+ * FORMÅL: Quick signup uden full onboarding process
+ * 
+ * FORSKEL FRA GETSTARTED:
+ * - UDEN marketing carousel (springer step 0 over)
+ * - UDEN onboarding_complete flag
+ * - Til eksisterende brugere der laver ny konto
+ * - Hurtigere process
+ * 
+ * STEP FLOW:
+ * Step 0: SignupForm - Email og password
+ * Step 1: UserTypeSelect - Musician eller service-provider
+ * Step 2: UserInformation - Navn, telefon, by, fødselsdato
+ * Step 3: Interests - Vælg musik genres
+ * Step 4: Subscription - Vælg plan (kan skippes)
+ * 
+ * STATE MANAGEMENT:
+ * - onboardingStep: Current step number (0-4)
+ * - email, password: Credentials fra step 0
+ * - userType: musician/service-provider fra step 1
+ * - userInfo: Object med navn, telefon, by etc.
+ * - selectedInterests: Array af genre strings
+ * - selectedSubscription: Plan choice (pt. ikke brugt)
+ * - showLoading: Boolean for loading screen ved completion
+ * 
+ * DATA FLOW:
+ * Hvert step indsamler data → Gemmes i parent state →
+ * Ved completion: Subscription component kalder signUp() og updateProfile() →
+ * showLoading sættes til true →
+ * useEffect redirect til home efter 4s
+ * 
+ * PHONE VALIDATION:
+ * isValidPhoneNumber() helper function:
+ * - Tjekker format baseret på country code
+ * - +45 (DK): 8 cifre
+ * - +1 (US): 10 cifre
+ * - +44 (UK): 10-11 cifre
+ * - Etc.
+ * 
+ * COMPLETION FLOW:
+ * 1. Subscription component færdig
+ * 2. setShowLoading(true)
+ * 3. useEffect trigger 4s timer
+ * 4. window.location.href = "/"
+ * 5. IKKE sat onboarding_complete flag
+ * 
+ * HVORFOR INGEN ONBOARDING FLAG?
+ * Denne route er til "quick signup" uden onboarding tour.
+ * GetStarted.jsx bruges til new users med full onboarding.
+ * 
+ * PROGRESS BAR:
+ * Vises fixed top:
+ * - Beregnes: (onboardingStep / 4) * 100
+ * - Step 0 = 0%, Step 4 = 100%
+ * - Visual feedback af progress
+ * 
+ * SCROLL HANDLING:
+ * - Fixed positioning med inset-0
+ * - overflow-y-auto for scrolling
+ * - Consistent layout across steps
+ * 
+ * LAVET AF: Jimmi Larsen
+ */
+
+/**
  * Register.jsx
  * Registration flow without marketing carousel.
  * Same as GetStarted.jsx but without the carousel (step 0) and without marking onboarding_complete.

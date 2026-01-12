@@ -13,16 +13,26 @@ function FriendItem({ friend, onFriendClick, onDeleteChat }) {
     : href("/chat/:threadId", { threadId: id });
   
   const handleClick = (e) => {
+    console.log("🎯 ChatListItem handleClick fired! friend.id:", id);
+    console.log("📋 Event:", e.type, "preventDefault called");
     if (onFriendClick) {
       e.preventDefault();
+      e.stopPropagation();
+      console.log("📞 Calling onFriendClick with id:", id);
       onFriendClick(id);
+    } else {
+      console.log("⚠️ No onFriendClick handler!");
     }
   };
   
   // Hvis ingen onClick handler, brug NavLink for navigation
   const Component = onFriendClick ? 'button' : NavLink;
   const componentProps = onFriendClick 
-    ? { onClick: handleClick, className: "w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left" }
+    ? { 
+        type: "button", // Prevent form submission
+        onClick: handleClick, 
+        className: "w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left" 
+      }
     : { 
         to: chatUrl,
         className: ({ isActive }) => [

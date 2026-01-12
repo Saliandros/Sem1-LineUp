@@ -1,12 +1,39 @@
-import React from "react";
 /**
- * UserTypeSelect.jsx
- * Step 2: Choose user role. Highlights selection and enables Continue.
- * Props:
- *  - userType: current selected value ('musician' | 'service-provider')
- *  - setUserType: setter to update parent state
- *  - onContinue: proceed to next step (disabled until selection)
+ * UserTypeSelect.jsx - Onboarding Step 2
+ * =======================================
+ * FORMÅL: Vælg bruger type (musician vs service-provider)
+ * 
+ * BRUGER TYPER:
+ * - 'musician': Musikere der søger samarbejder og services
+ * - 'service-provider': Folk der tilbyder services til musikere
+ *   (producers, sound engineers, fotografer, etc.)
+ * 
+ * UI DESIGN:
+ * - To store kort med hover effekt
+ * - Selected state med gul border (brand color)
+ * - Checkmark animation når valgt
+ * - Continue knap disabled indtil valg
+ * 
+ * STATE MANAGEMENT:
+ * - userType state er i parent component (GetStartedRoute)
+ * - Vi modtager setUserType som prop til at opdatere
+ * - Controlled component pattern
+ * 
+ * PROPS:
+ * - userType: Current selected value
+ * - setUserType: Setter function
+ * - onContinue: Callback når Continue klikkes
+ * 
+ * HVORFOR VIGTIGT:
+ * user_type gemmes i profiles table og bruges til:
+ * - Filtrering af content
+ * - Personalisering af features
+ * - Matchmaking algoritmer
+ * 
+ * LAVET AF: Jimmi Larsen
  */
+
+import React from "react";
 
 export function UserTypeSelect({ userType, setUserType, onContinue }) {
   return (

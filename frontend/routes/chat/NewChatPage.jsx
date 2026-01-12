@@ -36,19 +36,41 @@ export default function FriendListRoute() {
   const friendsWithoutMe = friends.filter((friend) => friend.id !== user?.id);
 
   const handleFriendClick = async (friendId) => {
-    if (isCreatingThread) return;
-
-    setIsCreatingThread(true);
     try {
+      console.log("🚀 NewChatPage handleFriendClick called with friendId:", friendId, "user:", user);
+      
+      if (!user || !user.id) {
+        console.error("❌ No user available!");
+        alert("User not logged in");
+        return;
+      }
+
+      if (isCreatingThread) {
+        console.log("⏳ Already creating thread, skipping...");
+        return;
+      }
+
+      setIsCreatingThread(true);
+      
+      console.log("📞 Calling getOrCreateThread with:", user.id, friendId);
+      
       // Tjek eller opret thread
       const thread = await getOrCreateThread(user.id, friendId);
+      
+      console.log("✅ Thread result:", thread);
 
       if (thread && thread.thread_id) {
+        console.log("🔄 Navigating to /chat/" + thread.thread_id);
         // Naviger til chatten
         navigate(`/chat/${thread.thread_id}`);
+      } else {
+        console.error("❌ No thread_id in response:", thread);
+        alert("Failed to create chat - no thread ID received");
       }
     } catch (error) {
-      console.error("Error creating/finding thread:", error);
+      console.error("❌ CRITICAL ERROR in handleFriendClick:", error);
+      console.error("Error stack:", error.stack);
+      alert(`Failed to open chat: ${error.message}`);
     } finally {
       setIsCreatingThread(false);
     }

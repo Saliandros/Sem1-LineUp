@@ -1,23 +1,53 @@
+/**
+ * SignupForm.jsx - Onboarding Step 1
+ * ===================================
+ * FORMÅL: Indsamle email og password credentials til ny bruger
+ * 
+ * VIGTIG DETALJE:
+ * Denne komponent OPRETTER IKKE brugeren!
+ * Den indsamler kun credentials og sender dem videre til parent.
+ * Selve bruger oprettelsen sker i GetStartedRoute efter alle onboarding steps.
+ * 
+ * VALIDATION:
+ * - Email: Standard email regex validation
+ * - Password: Minimum 8 tegn (Supabase krav)
+ * - Repeat Password: Skal matche password
+ * - Real-time feedback med grønne/røde ikoner
+ * 
+ * UI PATTERNS:
+ * - "Touched" state tracker om felt har været fokuseret
+ * - Validation vises kun efter felt er touched (bedre UX)
+ * - Visual feedback med checkmarks og x'er
+ * - Disabled continue knap indtil valid
+ * 
+ * BROWSER AUTOFILL HACK:
+ * Vi bruger dummy fields og readonly attribut for at forhindre
+ * browser autofill der kan forstyrre onboarding flowet
+ * 
+ * PROPS:
+ * - onContinue(email, password): Callback med credentials når valid
+ * 
+ * FLOW:
+ * User indtaster → Validation → Continue → Parent modtager credentials
+ * 
+ * LAVET AF: Jimmi Larsen
+ */
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 
-/**
- * SignupForm.jsx
- * Handles email and password collection for account creation.
- * Account is NOT created here - only credentials are collected.
- * Props:
- *  onContinue(email, password) -> callback with credentials when user clicks continue
- */
-
+// Email validation regex - standard format check
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+// Password validation rules
 const passwordValidation = {
   minLength: (password) => password.length >= 8,
 };
 
 const isValidPassword = (password) => passwordValidation.minLength(password);
 
+// Password match check - både match og ikke tom
 const passwordsMatch = (password, repeatPassword) =>
   password === repeatPassword && repeatPassword.length > 0;
 

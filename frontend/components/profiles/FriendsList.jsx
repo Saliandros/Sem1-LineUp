@@ -1,3 +1,46 @@
+/**
+ * FriendsList.jsx - Horizontal Scrollable Friends Component
+ * ==========================================================
+ * FORMÅL: Viser en horizontal scrollbar liste af venner med interaktiv menu
+ * 
+ * FEATURES:
+ * 1. **Drag-to-Scroll**: Mouse drag for at scrolle gennem venner
+ * 2. **Context Menu**: Klik på ven for at åbne menu med actions
+ * 3. **Actions**: "Show Profile" og "Start Chat"
+ * 4. **Brand Styling**: Gul ring omkring avatars (LineUp brand)
+ * 
+ * DRAG-TO-SCROLL IMPLEMENTATION:
+ * - Mouse down → Gem start position
+ * - Mouse move → Beregn hvor langt der er draget
+ * - Update container scrollLeft baseret på drag distance
+ * - Mouse up → Reset drag state
+ * - Tjek drag distance før åbning af menu (undgå accidental clicks)
+ * 
+ * STATE MANAGEMENT:
+ * - isDragging: Boolean om user aktivt dragger
+ * - startX: Start X position for drag
+ * - scrollLeft: Container's scroll position ved drag start
+ * - dragDistanceRef: Reference til total drag distance
+ * - selectedFriend: Hvilken ven har åben menu
+ * 
+ * PROPS:
+ * - friends: Array af ven objekter
+ * - onFriendClick: Callback når "Start Chat" klikkes
+ * - creatingThread: Boolean loading state
+ * 
+ * DESIGN NOTES:
+ * - Gul ring: Brand identity fra design system
+ * - Cursor changes: grab → grabbing under drag
+ * - Smooth scroll når ikke dragging
+ * - Hidden scrollbar for cleaner look
+ * 
+ * MOBILE SUPPORT:
+ * - Touch events ikke implementeret (kun mouse)
+ * - Native touch scroll virker via overflow-x-auto
+ * 
+ * LAVET AF: Omar Gaal & Hani Zaghmout (styling), Jimmi Larsen (chat integration)
+ */
+
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -8,10 +51,14 @@ export default function FriendsList({
 }) {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  
+  // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const dragDistanceRef = useRef(0);
+  
+  // Menu state
   const [selectedFriend, setSelectedFriend] = useState(null);
 
   const handleMouseDown = (e) => {

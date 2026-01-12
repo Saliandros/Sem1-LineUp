@@ -1,18 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabaseClient";
 
-let supabase = null;
-
+// Reuse the shared Supabase client instance to avoid multiple client warnings
 function getSupabaseClient() {
-  if (!supabase) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing Supabase environment variables");
-    }
-
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  }
   return supabase;
 }
 
@@ -55,42 +44,54 @@ export async function fetchGroupChats() {
 
 // Hent alle venner (connections) for den nuværende bruger
 export async function fetchAllUsersAsFriends() {
+  console.log("🚀 fetchAllUsersAsFriends called");
   try {
     const supabase = getSupabaseClient();
+    console.log("✅ Supabase client created");
     
-    // Først hent den nuværende bruger
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Først hent session for token
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log("📊 getSession result:", { session: !!session, error: sessionError });
     
-    if (userError || !user) {
-      console.error("Error getting current user:", userError);
+    if (sessionError || !session) {
+      console.error("❌ Error getting session:", sessionError);
       return [];
     }
 
-    console.log("Current user ID:", user.id);
-
-    // Hent alle connections hvor brugeren er en del af OG status er 'accepted'
-    // Split into two separate queries for better RLS compatibility
-    const { data: connections1, error: connectionsError1 } = await supabase
-      .from("connections")
-      .select("*")
-      .eq("user_id_1", user.id)
-      .eq("status", "accepted");
-
-    const { data: connections2, error: connectionsError2 } = await supabase
-      .from("connections")
-      .select("*")
-      .eq("user_id_2", user.id)
-      .eq("status", "accepted");
-
-    if (connectionsError1) {
-      console.error("Error fetching connections (user_id_1):", connectionsError1);
-    }
-    if (connectionsError2) {
-      console.error("Error fetching connections (user_id_2):", connectionsError2);
+    // Derefter hent user data (mere reliable end getSession().user)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log("👤 getUser result:", { user: !!user, userId: user?.id, error: userError });
+    
+    if (userError || !user) {
+      console.error("❌ Error getting user:", userError);
+      return [];
     }
 
-    const connections = [...(connections1 || []), ...(connections2 || [])];
-    console.log("Found connections:", connections);
+    console.log("🔑 Current user ID:", user.id);
+    console.log("🔑 Access token exists:", !!session.access_token);
+
+    // Brug backend API i stedet for direkte Supabase
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    console.log("🌐 API_URL:", API_URL);
+    
+    const response = await fetch(`${API_URL}/api/connections`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log("📡 Connections response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Failed to fetch connections:", response.status, errorText);
+      return [];
+    }
+
+    const { connections } = await response.json();
+    console.log("✅ Found connections:", connections.length, connections);
 
     if (!connections || connections.length === 0) {
       console.log("No connections found");

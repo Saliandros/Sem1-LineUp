@@ -1,3 +1,55 @@
+/**
+ * CollabList.jsx - Collaboration List Component
+ * ==============================================
+ * FORMÅL: Viser liste af collaborations med filtering og sorting
+ * 
+ * FEATURES:
+ * 1. **Filtering**: Search query og genre filter
+ * 2. **Sorting**: Recommended, time, location, paid
+ * 3. **Save**: Bookmark functionality via local state
+ * 4. **Expand**: En kollab ad gangen kan være expanded
+ * 5. **Start Chat**: Integration med chat system
+ * 
+ * FILTERING LOGIC:
+ * - Search query: Match titel ELLER beskrivelse
+ * - Genre filter: Collaboration skal have mindst én matching genre
+ * - Filtre kombineres med AND logic (begge skal matche)
+ * 
+ * SORTING OPTIONS:
+ * - "recommended": Original rækkefølge (default)
+ * - "time": Nyeste først (created_at DESC)
+ * - "location": Alfabetisk efter location
+ * - "paid": Betalte gigs først, så ubetalte
+ * 
+ * DATA NORMALISERING:
+ * Backend endpoints returnerer forskellige field names:
+ * - collab_title / title / name
+ * - collab_description / description / body
+ * - collab_genres / genres
+ * Vi normaliserer alt til consistent format for filtering
+ * 
+ * STATE MANAGEMENT:
+ * - expandedId: Hvilket kort er expanded (null = ingen)
+ * - savedIds: Set af saved collaboration IDs (local state kun)
+ * 
+ * SAVED FUNCTIONALITY:
+ * Pt. kun local state (ikke persistent i database)
+ * TODO: Persist til database via saved_collaborations tabel
+ * 
+ * PROPS:
+ * - className: Custom CSS classes
+ * - variant: Display variant ("card" pt.)
+ * - searchQuery: Search string fra parent
+ * - selectedGenres: Array af genre strings
+ * - sortBy: Sort option string
+ * - collaborations: Raw data array fra backend
+ * - onStartChat: Callback for chat start
+ * - creatingThread: Loading state for chat
+ * - currentUserId: For ownership checks
+ * 
+ * LAVET AF: Anders Flæng
+ */
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CollabCard from "./CollabCard.jsx";
@@ -17,6 +69,8 @@ export default function CollabList({
   const [expandedId, setExpandedId] = useState(null);
   const [savedIds, setSavedIds] = useState(new Set());
 
+  // Toggle save state for en collaboration
+  // Pt. kun local - skal persist til database senere
   const toggleSave = (collabId) => {
     setSavedIds((prev) => {
       const newSet = new Set(prev);
@@ -29,7 +83,7 @@ export default function CollabList({
     });
   };
 
-  // Apply filters
+  // FILTERING: Search query og genres
   const filteredCollabs = collaborations.filter((raw) => {
     // Normalize data first
     const collab = {

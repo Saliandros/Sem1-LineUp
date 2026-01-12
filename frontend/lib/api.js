@@ -1,3 +1,59 @@
+/**
+ * api.js - Frontend API Service Layer
+ * ====================================
+ * FORMÅL: Centraliseret data fetching med Supabase client
+ * 
+ * ARKITEKTUR PATTERN:
+ * Dette er "Data Layer" / "Service Layer" pattern:
+ * - Components kalder api.js functions
+ * - api.js håndterer al Supabase kommunikation
+ * - Centraliseret error handling
+ * - Consistent response format
+ * 
+ * HVORFOR DETTE PATTERN?
+ * ✅ Components behøver ikke kende Supabase details
+ * ✅ Error handling ét sted
+ * ✅ Nem at teste (kan mocke api.js)
+ * ✅ Nem at skifte backend (kun ændre api.js)
+ * ✅ Type safety og documentation
+ * 
+ * ERROR HANDLING:
+ * Custom ApiError class:
+ * - Extends Error med code og details
+ * - handleSupabaseError() wrapper
+ * - Throw errors som kan catches i components
+ * 
+ * AUTH HELPERS:
+ * - getCurrentUser(): Hent current auth user
+ * - getSession(): Hent current session
+ * - getCurrentUserProfile(): Hent profil for current user
+ * 
+ * API SECTIONS:
+ * Organiseret i sections med comments:
+ * - Auth Helpers
+ * - Profile API
+ * - Posts API  
+ * - Connections API
+ * - Collaborations API
+ * - Messages API
+ * - Threads API
+ * Etc.
+ * 
+ * SUPABASE CLIENT USAGE:
+ * Alle functions bruger supabase client:
+ * const { data, error } = await supabase.from('table').select()
+ * 
+ * VIGTIGT:
+ * Tjek error.code === 'PGRST116' for "not found"
+ * Dette er ikke en fejl, bare tomt resultat
+ * 
+ * ENVIRONMENT:
+ * API_BASE bruges til backend REST calls (optional)
+ * Default: http://localhost:3000
+ * 
+ * LAVET AF: Jimmi Larsen & Alle (forskellige endpoints)
+ */
+
 import { supabase } from "./supabaseClient";
 
 /**
@@ -10,6 +66,9 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 // ============================================
 // ERROR HANDLING
 // ============================================
+
+// Custom error class for API errors
+// Giver mere information end standard Error
 export class ApiError extends Error {
   constructor(message, code, details) {
     super(message);
@@ -19,6 +78,8 @@ export class ApiError extends Error {
   }
 }
 
+// Helper til at håndtere Supabase errors
+// Throw ApiError hvis der er en error
 function handleSupabaseError(error) {
   if (error) {
     throw new ApiError(
@@ -35,6 +96,7 @@ function handleSupabaseError(error) {
 
 /**
  * Get current authenticated user
+ * Returnerer null hvis ikke logged in
  */
 export async function getCurrentUser() {
   const {

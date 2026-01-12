@@ -1,3 +1,61 @@
+/**
+ * profiles.js - User Profiles API Routes
+ * =======================================
+ * FORMÅL: Håndter bruger profil data CRUD operationer
+ * 
+ * HVAD ER EN PROFIL?
+ * Profil indeholder brugerens public information:
+ * - displayname: Vist navn
+ * - user_bio: Bio tekst
+ * - user_image: Profil billede URL
+ * - city: By/lokation
+ * - user_type: musician / service-provider
+ * - genres: Array af musik genres
+ * - spotify_url: Link til Spotify
+ * 
+ * DATABASE TABEL: profiles
+ * Oprettes automatisk via database trigger når ny user signup
+ * Primær nøgle er user's auth id (UUID)
+ * 
+ * ENDPOINTS:
+ * GET /api/profiles - Liste alle profiler
+ * GET /api/profiles/search?q=navn - Søg efter displayname
+ * GET /api/profiles/me - Din egen profil (kræver auth)
+ * GET /api/profiles/:userId - Specifik profil
+ * PUT /api/profiles/:userId - Opdater profil
+ * 
+ * SEARCH FUNCTIONALITY:
+ * Query param: ?q=searchTerm
+ * - Case-insensitive ILIKE search
+ * - Kun søg i displayname felt
+ * - Limit 20 results
+ * - Returnerer basic info (ikke alt)
+ * 
+ * /ME ENDPOINT:
+ * Special route for current user:
+ * - Kræver authentication
+ * - Returnerer egen profil baseret på JWT token
+ * - VIGTIGT: Defineres FØR /:userId route (ellers "me" tolkes som UUID)
+ * 
+ * FILE UPLOAD:
+ * PUT endpoint bruger Multer for profile image:
+ * - user_image felt
+ * - Upload til Supabase Storage
+ * - multipart/form-data
+ * 
+ * AUTHORIZATION:
+ * - Læsning: optionalAuth (alle kan se)
+ * - Opdatering: authenticate + kun egen profil
+ * 
+ * ERROR HANDLING:
+ * - PGRST116: Profile not found (404)
+ * - Authentication errors: 401
+ * - Validation errors: 400
+ * - Server errors: 500
+ * 
+ * LAVET AF: Omar Gaal & Jimmi Larsen
+ */
+
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { authenticate, optionalAuth } from "../middleware/auth.js";
@@ -7,7 +65,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
-// Get all profiles
+// GET /api/profiles - Hent alle profiler
 router.get("/", optionalAuth, async (req, res) => {
   try {
     const { data, error } = await supabase

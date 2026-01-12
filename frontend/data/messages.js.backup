@@ -1,94 +1,14 @@
-/**
- * messages.js - Chat Data Layer
- * ==============================
- * FORMÅL: Centraliseret håndtering af alle chat/besked operationer
- * 
- * HVAD ER EN DATA LAYER?
- * Et abstraktionslag mellem komponenter og data sources (backend API/Supabase)
- * Gør det nemt at skifte data source uden at ændre komponenter
- * 
- * ARKITEKTUR BESLUTNING:
- * Denne fil var oprindeligt 100% direkte Supabase queries
- * Vi har konverteret den til at bruge backend API i stedet fordi:
- * 1. Backend validerer bruger tokens server-side (mere sikkert)
- * 2. Backend kan lave komplekse joins og aggregeringer
- * 3. Lettere at debugge med centraliseret logging
- * 4. Konsistent fejlhåndtering på tværs af alle kald
- * 
- * HYBRID APPROACH:
- * Nogle funktioner bruger stadig direkte Supabase (addParticipantsToThread)
- * fordi backend endpoint ikke eksisterer endnu
- * 
- * API BASE URL:
- * Development: http://localhost:3000
- * Production: Sat via VITE_API_URL environment variable
- * 
- * AUTHENTICATION:
- * Alle API kald inkluderer Bearer token i Authorization header
- * Token hentes fra Supabase session
- * 
- * EKSAMENSSPØRGSMÅL:
- * Q: "Hvorfor ikke bare kalde Supabase direkte fra komponenter?"
- * A: "Data layer giver separation of concerns. Komponenter fokuserer på UI,
- *     data layer fokuserer på data fetching. Plus vi kan cache, retry logic,
- *     og centraliseret error handling her."
- */
+import { supabase } from "../lib/supabaseClient.js";
 
-import { supabase } from "../lib/supabaseClient";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-/**
- * getAuthToken Helper Function
- * =============================
- * FORMÅL: Hent JWT access token fra Supabase session
- * 
- * HVORFOR SKAL VI HAVE TOKEN?
- * Backend kræver authentication for alle beskyttede endpoints
- * JWT token beviser at brugeren er logged in
- * 
- * FLOW:
- * 1. Kald getSession() på Supabase client
- * 2. Udtræk access_token fra session
- * 3. Return token eller null hvis ikke logged in
- * 
- * GENBRUG:
- * Denne funktion kaldes af næsten alle andre funktioner i filen
- * før de laver API kald
- */
+// Helper til at få auth token
 async function getAuthToken() {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token;
 }
 
-// ==================== API CALLS ====================
-
-/**
- * fetchMessages Function
- * ======================
- * FORMÅL: Hent alle beskeder i en chat thread
- * 
- * BACKEND ENDPOINT: GET /api/messages/thread/:threadId
- * 
- * FLOW:
- * 1. Hent auth token
- * 2. Kald backend API med thread ID
- * 3. Backend validerer token og henter beskeder fra database
- * 4. Return array af besked objekter
- * 
- * BESKED OBJEKT STRUKTUR:
- * {
- *   message_id: UUID
- *   thread_id: UUID
- *   user_id: UUID (afsender)
- *   message_content: String
- *   created_at: Timestamp
- * }
- * 
- * ERROR HANDLING:
- * Ved fejl returneres tom array i stedet for at crashe
- * Fejl logges til console for debugging
- */
+// Hent alle beskeder fra en tråd via backend API
 export async function fetchMessages(threadId) {
   try {
     const token = await getAuthToken();
@@ -115,6 +35,48 @@ export async function fetchMessages(threadId) {
     console.error("Error fetching messages:", error);
     return [];
   }
+}
+
+// Transformér databasebeskeder til Chat komponents format
+export function transformMessages(
+  databaseMessages,
+  currentUserId,
+  currentUserImage,
+  friendImage,
+  friendName = "Friend"
+) {
+  return databaseMessages.map((msg) => ({
+    id: msg.message_id || msg.id || `${msg.thread_id}-${msg.user_id}-${msg.created_at}`,
+    type: msg.user_id === currentUserId ? "user" : "friend",
+    content: msg.message_content,
+    senderId: msg.user_id,
+    avatar: msg.user_id === currentUserId ? currentUserImage : friendImage,
+    senderName: msg.user_id === currentUserId ? "You" : friendName,
+    created_at: msg.created_at,
+  }));
+}
+
+// Transformér beskeder til gruppechat format med deltagere map
+export function transformGroupMessages(
+  databaseMessages,
+  currentUserId,
+  participantsMap, // Map af user_id -> {avatar, name}
+  currentUserAvatar // Den nuværende brugers avatar
+) {
+  return databaseMessages.map((msg) => {
+    const isCurrentUser = msg.user_id === currentUserId;
+    const participant = participantsMap[msg.user_id];
+    
+    return {
+      id: msg.message_id || msg.id || `${msg.thread_id}-${msg.user_id}-${msg.created_at}`,
+      type: isCurrentUser ? "user" : "friend",
+      content: msg.message_content,
+      senderId: msg.user_id,
+      avatar: isCurrentUser ? currentUserAvatar : (participant?.avatar || "/assets/icons/user-circle.svg"),
+      senderName: isCurrentUser ? "You" : (participant?.name || "Unknown"),
+      created_at: msg.created_at,
+    };
+  });
 }
 
 // Send en besked via backend API
@@ -178,7 +140,7 @@ export async function getUserThreads(userId) {
   }
 }
 
-// Hent kun gruppe threads (thread_type === 'group') for en bruger
+// Hent kun gruppe threads (mer end 2 deltagere) for en bruger
 export async function getUserGroupThreads(userId) {
   try {
     const token = await getAuthToken();
@@ -187,6 +149,7 @@ export async function getUserGroupThreads(userId) {
       return [];
     }
 
+    // Hent alle threads via API
     const response = await fetch(`${API_URL}/api/threads/user/${userId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -200,17 +163,18 @@ export async function getUserGroupThreads(userId) {
 
     const { threads } = await response.json();
     
-    // Filter kun gruppethreads
-    // Stadig behov for Supabase check af deltagere da API ikke returnerer det
+    // Filter kun gruppethreads (thread_type === 'group' ELLER threads med mere end 2 deltagere)
+    // Vi skal stadig tjekke deltagere via Supabase da API'en ikke returnerer det endnu
     const groupThreads = [];
     
     for (const thread of threads) {
+      // Brug thread_type hvis tilgængelig
       if (thread.thread_type === 'group') {
         groupThreads.push(thread);
         continue;
       }
       
-      // Check antal deltagere via Supabase
+      // Ellers tjek antal deltagere
       const { data: participantCount } = await supabase
         .from("thread_participants")
         .select("user_id", { count: "exact" })
@@ -221,6 +185,7 @@ export async function getUserGroupThreads(userId) {
       }
     }
 
+    // Sorter efter nyeste først
     return groupThreads.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   } catch (error) {
@@ -251,6 +216,7 @@ export async function getThreadParticipantsWithProfiles(threadId) {
 
     const { thread } = await response.json();
     
+    // Backend returnerer participants med profiles
     return thread.participants?.map(p => ({
       id: p.user_id,
       displayname: p.profiles?.displayname || 'Unknown',
@@ -264,21 +230,78 @@ export async function getThreadParticipantsWithProfiles(threadId) {
     return [];
   }
 }
+// Opdater gruppe navn
+export async function updateGroupName(threadId, groupName) {
+  try {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("threads")
+      .update({ group_name: groupName })
+      .eq("thread_id", threadId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error("Error updating group name:", error);
+    throw error;
+  }
+}
+
+// Opdater gruppe billede
+export async function updateGroupImage(threadId, imageUrl) {
+  try {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("threads")
+      .update({ group_image: imageUrl })
+      .eq("thread_id", threadId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error("Error updating group image:", error);
+    throw error;
+  }
+}export async function getThread(threadId) {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("threads")
+      .select("*")
+      .eq("thread_id", threadId)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // Ingen tråd fundet
+        return null;
+      }
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching thread:", error);
+    return null;
+  }
+}
 
 // Opret eller hent en tråd mellem to brugere via backend API
 export async function getOrCreateThread(user1Id, user2Id) {
-  console.log("🔧 getOrCreateThread START - user1:", user1Id, "user2:", user2Id);
   try {
-    console.log("🔑 Getting auth token...");
     const token = await getAuthToken();
     if (!token) {
-      console.error("❌ No auth token!");
       throw new Error("No auth token available");
     }
-    console.log("✅ Token obtained");
 
     // Først forsøg at finde eksisterende thread
-    console.log("🔍 Fetching existing threads...");
     const threadsResponse = await fetch(`${API_URL}/api/threads/user/${user1Id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -286,27 +309,21 @@ export async function getOrCreateThread(user1Id, user2Id) {
       }
     });
 
-    console.log("📡 Threads response status:", threadsResponse.status);
     if (threadsResponse.ok) {
       const { threads } = await threadsResponse.json();
-      console.log("📋 Found threads:", threads?.length || 0);
       
       // Find direct thread mellem disse to brugere
       for (const thread of threads) {
         if (thread.thread_type === 'direct') {
-          console.log("🔍 Checking direct thread:", thread.thread_id);
           // Tjek om den anden bruger er deltager (stadig via Supabase da API ikke giver deltager liste)
-          console.log("⚠️ WARNING: Using direct Supabase query - this might cause issues!");
           const { data: participants } = await supabase
             .from("thread_participants")
             .select("user_id")
             .eq("thread_id", thread.thread_id);
 
-          console.log("👥 Participants:", participants?.length || 0);
           if (participants && participants.length === 2) {
             const userIds = participants.map(p => p.user_id);
             if (userIds.includes(user1Id) && userIds.includes(user2Id)) {
-              console.log("✅ FOUND EXISTING THREAD:", thread.thread_id);
               return thread;
             }
           }
@@ -315,7 +332,6 @@ export async function getOrCreateThread(user1Id, user2Id) {
     }
 
     // Ingen eksisterende thread fundet, opret ny via backend
-    console.log("➕ Creating new thread...");
     const createResponse = await fetch(`${API_URL}/api/threads`, {
       method: 'POST',
       headers: {
@@ -334,16 +350,9 @@ export async function getOrCreateThread(user1Id, user2Id) {
     }
 
     const { thread } = await createResponse.json();
-    console.log("🎉 Thread created/found successfully:", thread);
     return thread;
   } catch (error) {
-    console.error("❌ CRITICAL ERROR in getOrCreateThread:", error);
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-      user1Id,
-      user2Id
-    });
+    console.error("Error getting or creating thread:", error);
     throw error;
   }
 }
@@ -382,152 +391,89 @@ export async function createGroupThread(creatorId, participantIds, groupName = n
   }
 }
 
-// Slet en tråd via backend API
+  // Opret thread
+  const { data: newThread, error: createError } = await supabase
+    .from("threads")
+    .insert({
+      created_by_user_id: creatorId,
+      thread_type: "group",
+      thread_name: groupName,
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (createError) throw createError;
+
+  // Tilføj alle deltagere (inklusiv skaberen)
+  const allParticipants = [creatorId, ...participantIds];
+  const participantsData = allParticipants.map(userId => ({
+    thread_id: newThread.thread_id, 
+    user_id: userId, 
+    role: userId === creatorId ? "admin" : "member"
+  }));
+
+  const { error: participantsError } = await supabase
+    .from("thread_participants")
+    .insert(participantsData);
+
+  if (participantsError) {
+    // Rollback: slet thread hvis deltagere ikke kunne tilføjes
+    await supabase.from("threads").delete().eq("thread_id", newThread.thread_id);
+    throw participantsError;
+  }
+
+  return newThread;
+}
+
+// Slet en tråd og tilhørende beskeder
 export async function deleteThread(threadId) {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      throw new Error("No auth token available");
-    }
+    const supabase = getSupabaseClient();
 
-    const response = await fetch(`${API_URL}/api/threads/${threadId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Slet beskeder først pga. FK constraints
+    const { error: messagesError } = await supabase
+      .from("messages")
+      .delete()
+      .eq("thread_id", threadId);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to delete thread: ${response.status}`);
-    }
+    if (messagesError) throw messagesError;
+
+    const { error: threadError } = await supabase
+      .from("threads")
+      .delete()
+      .eq("thread_id", threadId);
+
+    if (threadError) throw threadError;
   } catch (error) {
     console.error("Error deleting thread:", error);
     throw error;
   }
 }
 
-// Opdater gruppe navn (stadig via Supabase da ingen backend route findes)
-export async function updateGroupName(threadId, groupName) {
+// Hent deltagere i en thread
+export async function getThreadParticipants(threadId) {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
-      .from("threads")
-      .update({ group_name: groupName })
-      .eq("thread_id", threadId)
-      .select()
-      .single();
+      .from("thread_participants")
+      .select("user_id, role, joined_at, profiles(id, displayname, user_image)")
+      .eq("thread_id", threadId);
 
     if (error) throw error;
-    return data;
+
+    return data || [];
   } catch (error) {
-    console.error("Error updating group name:", error);
-    throw error;
+    console.error("Error fetching thread participants:", error);
+    return [];
   }
 }
 
-// Opdater gruppe billede (stadig via Supabase da ingen backend route findes)
-export async function updateGroupImage(threadId, imageUrl) {
-  try {
-    const { data, error } = await supabase
-      .from("threads")
-      .update({ group_image: imageUrl })
-      .eq("thread_id", threadId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error updating group image:", error);
-    throw error;
-  }
-}
-
-// Hent thread (stadig via Supabase da bruges lokalt)
-export async function getThread(threadId) {
-  try {
-    console.log("🔍 getThread called for threadId:", threadId);
-    const token = await getAuthToken();
-    if (!token) {
-      console.error("❌ No auth token for getThread");
-      return null;
-    }
-
-    const response = await fetch(`${API_URL}/api/threads/${threadId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    console.log("📡 getThread response status:", response.status);
-    
-    if (response.status === 404) {
-      console.log("⚠️ Thread not found");
-      return null;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch thread: ${response.status}`);
-    }
-
-    const { thread } = await response.json();
-    console.log("✅ Thread fetched:", thread);
-    return thread;
-  } catch (error) {
-    console.error("Error fetching thread:", error);
-    return null;
-  }
-}
-
-// ==================== DATA TRANSFORMERS ====================
-
-// Transformér databasebeskeder til Chat komponents format
-export function transformMessages(
-  databaseMessages,
-  currentUserId,
-  currentUserImage,
-  friendImage,
-  friendName = "Friend"
-) {
-  return databaseMessages.map((msg) => ({
-    id: msg.message_id || msg.id || `${msg.thread_id}-${msg.user_id}-${msg.created_at}`,
-    type: msg.user_id === currentUserId ? "user" : "friend",
-    content: msg.message_content,
-    senderId: msg.user_id,
-    avatar: msg.user_id === currentUserId ? currentUserImage : friendImage,
-    senderName: msg.user_id === currentUserId ? "You" : friendName,
-    created_at: msg.created_at,
-  }));
-}
-
-// Transformér beskeder til gruppechat format med deltagere map
-export function transformGroupMessages(
-  databaseMessages,
-  currentUserId,
-  participantsMap,
-  currentUserAvatar
-) {
-  return databaseMessages.map((msg) => {
-    const isCurrentUser = msg.user_id === currentUserId;
-    const participant = participantsMap[msg.user_id];
-    
-    return {
-      id: msg.message_id || msg.id || `${msg.thread_id}-${msg.user_id}-${msg.created_at}`,
-      type: isCurrentUser ? "user" : "friend",
-      content: msg.message_content,
-      senderId: msg.user_id,
-      avatar: isCurrentUser ? currentUserAvatar : (participant?.avatar || "/assets/icons/user-circle.svg"),
-      senderName: isCurrentUser ? "You" : (participant?.name || "Unknown"),
-      created_at: msg.created_at,
-    };
-  });
-}
-
-// Tilføj deltagere til en eksisterende thread (konverter til gruppe hvis nødvendigt)
+// Tilføj deltagere til en eksisterende thread (konverter til gruppe chat)
 export async function addParticipantsToThread(threadId, newUserIds) {
   try {
+    const supabase = getSupabaseClient();
+
     // Først hent den nuværende thread for at se type
     const { data: thread, error: threadError } = await supabase
       .from("threads")
@@ -567,6 +513,3 @@ export async function addParticipantsToThread(threadId, newUserIds) {
     throw error;
   }
 }
-
-// Alias til getThreadParticipantsWithProfiles for bagudkompatibilitet
-export const getThreadParticipants = getThreadParticipantsWithProfiles;

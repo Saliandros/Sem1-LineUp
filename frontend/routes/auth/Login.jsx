@@ -1,3 +1,67 @@
+/**
+ * Login.jsx - Login Page Component
+ * =================================
+ * FORMÅL: Login formular til eksisterende brugere
+ * 
+ * FEATURES:
+ * - Email og password input med validation
+ * - "Remember me" checkbox (localStorage)
+ * - Real-time validation feedback
+ * - Error handling og display
+ * - Loading state under login
+ * - Redirect til home efter success
+ * 
+ * VALIDATION:
+ * - Email: Standard regex format check
+ * - Password: Minimum 8 tegn (Supabase krav)
+ * - Validation vises efter touch (bedre UX)
+ * - Visual feedback med checkmarks
+ * 
+ * AUTHENTICATION FLOW:
+ * 1. User submitter form
+ * 2. Client-side validation
+ * 3. Call signIn() fra AuthContext
+ * 4. AuthContext kalder Supabase Auth API
+ * 5. Session gemmes i localStorage
+ * 6. Redirect til home page
+ * 
+ * ERROR HANDLING:
+ * Try/catch omkring signIn():
+ * - Invalid credentials: "Failed to login"
+ * - Network error: Error message displayed
+ * - State cleared efter error
+ * 
+ * REMEMBER ME:
+ * Hvis checked:
+ * - Save "true" til localStorage
+ * - Bruges til at huske email næste gang
+ * - Pt. kun flag, ikke email persistence
+ * 
+ * BROWSER AUTOFILL HACK:
+ * Dummy input felter forhindrer browser autofill:
+ * <input type="text" name="fake-username" style={{display:'none'}} />
+ * Ellers kan browser autofill forstyrre UX
+ * 
+ * SCROLL LOCK:
+ * useEffect sætter overflow:hidden på mount:
+ * - Forhindrer scroll af baggrund
+ * - Cleanup funktion resetter på unmount
+ * 
+ * LOADING SCREEN:
+ * Under login vis LoadingScreen component:
+ * - Spinner og brand logo
+ * - Blokkerer re-submission
+ * - Bedre UX end disabled button
+ * 
+ * STYLING:
+ * - Centered layout med max-width
+ * - Brand colors (gul for buttons)
+ * - Responsive padding
+ * - Gray background
+ * 
+ * LAVET AF: Jimmi Larsen
+ */
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
@@ -7,15 +71,21 @@ export default function Login() {
   const { signIn, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  
+  // Validation state
   const [emailError, setEmailError] = useState("");
   const [passwordTouched, setPasswordTouched] = useState(false);
+  
+  // UI state
   const [loginError, setLoginError] = useState(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Disable scrolling on mount, re-enable on unmount
+  // Forhindrer scroll af baggrund under login
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {

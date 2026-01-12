@@ -1,8 +1,63 @@
+/**
+ * collaborations.js - Collaboration Requests API
+ * ===============================================
+ * FORMÅL: Håndter CRUD operationer for samarbejds-annoncer
+ * 
+ * HVAD ER EN COLLABORATION?
+ * En collaboration request er en annonce hvor en musiker søger:
+ * - Samarbejdspartner (anden musiker)
+ * - Producer
+ * - Sound engineer
+ * - Fotograf
+ * - Eller anden service
+ * 
+ * DATABASE TABEL: collab_creation
+ * Felter:
+ * - collab_id (UUID, primary key)
+ * - user_id (UUID, foreign key til profiles)
+ * - collab_title (text)
+ * - collab_description (text)
+ * - collab_genres (text array)
+ * - collab_location (text)
+ * - collab_paid (boolean) - Betalt vs ubetalt gig
+ * - collab_image (text URL)
+ * - media (text URL) - Ekstra medie
+ * - created_at (timestamp)
+ * 
+ * ENDPOINTS:
+ * GET /api/collaborations - Liste alle (med optional filters)
+ * GET /api/collaborations/:id - Hent specifik
+ * GET /api/collaborations/user/:userId - Brugerens collabs
+ * POST /api/collaborations - Opret ny (med image upload)
+ * PUT /api/collaborations/:id - Opdater
+ * DELETE /api/collaborations/:id - Slet
+ * 
+ * FILTERING:
+ * Query params: ?genre=rock&location=Copenhagen
+ * - genre: Filtrer på musik genre
+ * - location: Filtrer på geografisk placering
+ * 
+ * FILE UPLOAD:
+ * Bruger Multer middleware til at håndtere multipart/form-data
+ * - collab_image: Hovedbillede for collaborationen
+ * - media: Ekstra medie (audio/video/andet billede)
+ * Filer uploades til Supabase Storage via backend
+ * 
+ * AUTHORIZATION:
+ * - Læsning: optionalAuth (alle kan se)
+ * - Oprettelse: authenticate (kun logged in)
+ * - Opdatering: authenticate + ownership check
+ * - Sletning: authenticate + ownership check
+ * 
+ * LAVET AF: Anders Flæng
+ */
+
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { authenticate, optionalAuth } from "../middleware/auth.js";
 import multer from "multer";
 
+// Setup Multer til at holde filer i memory (upload til Supabase derefter)
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();

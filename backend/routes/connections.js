@@ -1,3 +1,59 @@
+/**
+ * connections.js - Friend Connections API
+ * ========================================
+ * FORMÅL: Håndter venskabs-forbindelser mellem brugere
+ * 
+ * HVAD ER EN CONNECTION?
+ * En forbindelse mellem to brugere (friend request system):
+ * - Status: 'pending' (afventer accept)
+ * - Status: 'accepted' (begge er venner)
+ * - Status: 'blocked' (blokeret)
+ * 
+ * DATABASE TABEL: connections
+ * Felter:
+ * - connection_id (UUID, primary key)
+ * - user_id_1 (UUID) - Altid den MINDRE UUID
+ * - user_id_2 (UUID) - Altid den STØRRE UUID
+ * - requester_id (UUID) - Hvem der sendte anmodningen
+ * - status (text) - pending/accepted/blocked
+ * - created_at (timestamp)
+ * 
+ * ORDERED PAIR CONSTRAINT:
+ * VIGTIGT: user_id_1 skal altid være < user_id_2
+ * Dette sikrer én unik række per relation:
+ * - Uden: Kunne have både (A,B) og (B,A)
+ * - Med: Kun (A,B) hvis A < B
+ * Se ordered_users constraint i database
+ * 
+ * ENDPOINTS:
+ * GET /api/connections - Mine accepted connections
+ * GET /api/connections/user/:userId - Alle connections for user
+ * GET /api/connections/pending - Mine pending requests
+ * POST /api/connections - Send friend request
+ * PUT /api/connections/:id/accept - Accepter request
+ * PUT /api/connections/:id/reject - Afvis request
+ * DELETE /api/connections/:id - Slet connection
+ * 
+ * FRIEND REQUEST FLOW:
+ * 1. User A sender request til User B
+ *    - POST /api/connections med user_id_2 = B
+ *    - Status = pending, requester_id = A
+ * 2. User B ser pending request
+ *    - GET /api/connections/pending
+ * 3. User B accepterer eller afviser
+ *    - PUT /api/connections/:id/accept → status = accepted
+ *    - PUT /api/connections/:id/reject → DELETE row
+ * 4. Begge kan nu chatte
+ * 
+ * AUTHORIZATION:
+ * - GET: authenticate (kun dine egne)
+ * - POST: authenticate
+ * - PUT: authenticate + må kun accepte requests sendt TIL dig
+ * - DELETE: authenticate + må kun slette dine egne
+ * 
+ * LAVET AF: Omar Gaal
+ */
+
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { authenticate, optionalAuth } from "../middleware/auth.js";
@@ -5,7 +61,7 @@ import crypto from "crypto";
 
 const router = express.Router();
 
-// Get all connections for a user (only accepted ones)
+// GET /api/connections - Hent alle ACCEPTED connections for current user
 router.get("/", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;

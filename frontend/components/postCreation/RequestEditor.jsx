@@ -1,3 +1,59 @@
+/**
+ * RequestEditor.jsx - Create Request Post Component
+ * ==================================================
+ * FORMÅL: Form til at oprette et "request" post
+ * 
+ * HVAD ER EN REQUEST?
+ * En type post hvor user søger noget specifikt:
+ * - Musiker søger producer
+ * - Band søger venue
+ * - Søger samarbejdspartner
+ * Etc.
+ * 
+ * FORM FIELDS:
+ * - Titel (required)
+ * - Beskrivelse (required)
+ * - Genres (mindst én required)
+ * - Lokation/Address (required)
+ * - Medie/fil (optional)
+ * - Toggle for noget? (pt. ikke brugt)
+ * 
+ * VALIDATION:
+ * Client-side validation før submit:
+ * - Tjek for tomme required felter
+ * - Vis fejl besked øverst på siden
+ * - Prevent submit hvis validation fejler
+ * 
+ * REACT ROUTER FORM:
+ * Bruger React Router's <Form> component:
+ * - method="post" → Trigger action function
+ * - action=".." → Parent route's action
+ * - encType="multipart/form-data" → For fil upload
+ * 
+ * CLIENTLOADER:
+ * Henter current user profile data:
+ * - For at vise hvem der opretter
+ * - Kunne bruges til pre-fill felter
+ * - React Router 7 pattern: clientLoader (ikke server loader)
+ * 
+ * CONTROLLED INPUTS:
+ * Alle felter er controlled via useState:
+ * - title, description, genres, address, file, toggled
+ * - Giver fuld kontrol over form state
+ * - Nemmere at validere før submit
+ * 
+ * GENRE LIST:
+ * Hardcoded liste af 30+ genres:
+ * - Pop, Rock, Jazz, Electronic, etc.
+ * - Multiselect via TagComponent
+ * - Kunne udvides til database fetch
+ * 
+ * FLOW:
+ * User udfylder → Validation → Submit → Parent action → API call → Navigate
+ * 
+ * LAVET AF: Jimmi Larsen & Mikkel Ruby
+ */
+
 import { useState } from "react";
 import { Form, useLoaderData, useActionData } from "react-router-dom";
 import TitleComponent from "./formComponents/Title";
@@ -8,6 +64,8 @@ import AddressComponent from "./formComponents/Adress";
 import Switch from "../ui/Switch";
 import { getCurrentUserProfile } from "../../lib/api";
 
+// CLIENTLOADER: Hent current user profile
+// React Router 7 pattern - kører client-side, ikke server
 export async function clientLoader() {
   try {
     const profile = await getCurrentUserProfile();

@@ -1,9 +1,61 @@
+/**
+ * Navbar.jsx - Bottom Navigation Bar Component
+ * =============================================
+ * FORMÅL: Bottom sticky navigation bar med main app sections
+ * 
+ * NAVIGATION ITEMS:
+ * 1. Home (/) - Feed af posts fra network
+ * 2. Collabs (/collabs) - Find collaboration requests
+ * 3. Create (/create) - Opret post, collab, eller story
+ * 4. Chat (/chat) - Messaging center
+ * 5. Profile (/profile/me) - Din egen profil
+ * 
+ * NAVLINK COMPONENT:
+ * Bruger React Router's NavLink:
+ * - Automatisk active state styling
+ * - isActive prop for conditional rendering
+ * - end prop for exact matching (home route)
+ * 
+ * ACTIVE STATE STYLING:
+ * Active link får gul baggrund og special styling:
+ * - className callback: ({isActive}) => isActive ? 'active' : ''
+ * - Active icon får gul cirkel baggrund
+ * - Active text får fed stil
+ * 
+ * ICON SYSTEM:
+ * Hver nav item har:
+ * - Unikt SVG icon
+ * - Text label
+ * - Target route
+ * Defineret i navItems array for clean data structure
+ * 
+ * RESPONSIVE DESIGN:
+ * - Fixed bottom position (bottom-0)
+ * - Full width (w-full)
+ * - Safe area inset for notch devices (pb-safe)
+ * - Grid layout for equal spacing
+ * 
+ * Z-INDEX:
+ * High z-index (z-99) så navbar altid er ovenpå content
+ * Vigtigt for overlays og scroll containers
+ * 
+ * BRAND STYLING:
+ * - Gul accent color (#F7EC17) for active state
+ * - Sort baggrund (#1E1E1E)
+ * - Hvide icons default
+ * - Consistent med design system
+ * 
+ * LAVET AF: Hani Zaghmout (design), Jimmi Larsen (routing)
+ */
+
 import { NavLink } from "react-router";
 import Menu from "./header/Menu";
 import Search from "./header/Search";
 import Notification from "./header/Notification";
 import logoLineUpYellow from "../../assets/icons/logoLineUp-Yellow.svg";
 
+// Navigation items configuration
+// Hver item definerer icon, label, og destination
 const navItems = [
   {
     id: "home",

@@ -1,3 +1,51 @@
+/**
+ * Header.jsx - Top Navigation Component
+ * ======================================
+ * FORMÅL: Top bar navigation med logo og action knapper
+ * 
+ * FEATURES:
+ * - Logo: Skifter mellem fuld logo (home) og back arrow (andre sider)
+ * - Search: Åbner search overlay
+ * - Notifications: Åbner notification center
+ * - Menu: Åbner side menu med profil og settings
+ * 
+ * CONDITIONAL LOGO:
+ * - På "/" (home): Vis fuld LineUp logo
+ * - På andre sider: Vis back arrow (fungerer som "back" link)
+ * - Bruger useLocation() hook til at detektere current route
+ * 
+ * STATE MANAGEMENT:
+ * Hver action har egen toggle state:
+ * - openSearch: Boolean for search overlay
+ * - openNotification: Boolean for notifications
+ * - openMenu: Boolean for side menu
+ * 
+ * CONDITIONAL RENDERING:
+ * Vi renderer overlays conditionally baseret på state:
+ * {openSearch && <Search />}
+ * Dette sikrer kun én overlay ad gangen kan være åben
+ * 
+ * CLOSE CALLBACKS:
+ * Hver overlay får en close callback:
+ * closeSearch={() => setOpenSearch(false)}
+ * Child component kan lukke sig selv ved at kalde callback
+ * 
+ * SVG ICONS:
+ * Alle icons er inline SVG for bedre load performance
+ * - logo: Fuld LineUp wordmark
+ * - arrow: Back arrow
+ * - search: Magnifying glass
+ * - notification: Bell icon
+ * - burger: Hamburger menu (3 bars)
+ * 
+ * STYLING:
+ * - Fixed top positioning via CSS (z-99)
+ * - Flexbox layout for icon alignment
+ * - Brand spacing (py-4.5 px-4)
+ * 
+ * LAVET AF: Hani Zaghmout (design), Jimmi Larsen (functionality)
+ */
+
 import { useLocation, Link } from "react-router";
 import { useState } from "react";
 import Search from "./header/Search";
@@ -7,6 +55,7 @@ import Notification from "./header/Notification";
 export default function Header() {
   const location = useLocation();
 
+  // Toggle states for overlays
   const [openSearch, setOpenSearch] = useState(false);
   const [openNotification, setOpenNotification] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);

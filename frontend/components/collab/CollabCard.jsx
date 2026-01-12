@@ -1,3 +1,65 @@
+/**
+ * CollabCard.jsx - Collaboration Display Component
+ * =================================================
+ * FORMÅL: Viser én collaboration request som et kort med actions
+ * 
+ * FEATURES:
+ * - Vis titel, beskrivelse, location, genres
+ * - "Save" funktionalitet (bookmark)
+ * - Expand/collapse lang beskrivelse
+ * - "Start Chat" med collaboration owner
+ * - Delete (kun hvis du er owner)
+ * 
+ * DATA NORMALISERING:
+ * Backend returnerer forskellige field names afhængig af endpoint.
+ * Vi normaliserer data til consistent format:
+ * - collab_title → title
+ * - collab_description → description
+ * - collab_genres → genres
+ * Etc.
+ * 
+ * SAVE FUNCTIONALITY:
+ * Users kan "save" collaborations for senere
+ * - Gemmes i local state (ikke persistent pt.)
+ * - Gul stjerne når saved
+ * - Toggle on/off
+ * 
+ * EXPAND/COLLAPSE:
+ * Lange beskrivelser truncates
+ * - "Read more" knap åbner fuld tekst
+ * - "Show less" lukker igen
+ * - Controlled via expandedId state i parent
+ * 
+ * DELETE FUNCTIONALITY:
+ * - Kun synlig hvis currentUserId === collaboration.user_id
+ * - Confirmation dialog før sletning
+ * - API call: DELETE /api/collaborations/:id
+ * - Page reload efter success (simpel data sync)
+ * 
+ * START CHAT:
+ * - onStartChat callback trigger thread creation
+ * - Navigerer til chat med collaboration owner
+ * - Loading state under thread creation
+ * 
+ * PROPS:
+ * - collaboration: Collaboration data objekt
+ * - onStartChat: Callback for chat start
+ * - creatingThread: Loading state
+ * - savedIds: Array af saved collaboration IDs
+ * - toggleSave: Toggle save state
+ * - expandedId: Hvilket kort er expanded
+ * - setExpandedId: Setter for expanded state
+ * - currentUserId: For at tjekke ownership
+ * 
+ * STYLING:
+ * - Card design med shadow og hover effects
+ * - Yellow accent color (brand)
+ * - Responsive images
+ * - Icon buttons for actions
+ * 
+ * LAVET AF: Anders Flæng
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
@@ -10,7 +72,7 @@ export default function CollabCard({
   toggleSave,
   expandedId,
   setExpandedId,
-  currentUserId, // Add this prop to check if user owns the collab
+  currentUserId, // Tjek om user ejer denne collaboration
 }) {
   const navigate = useNavigate();
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
