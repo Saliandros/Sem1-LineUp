@@ -9,7 +9,8 @@ import {
 } from "react-router";
 
 import "./app.css";
-import { AuthProvider } from "./contexts/AuthContext";
+// @ts-ignore
+import { AuthProvider } from "./contexts/AuthContext.jsx";
 
 export const links = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

@@ -7,9 +7,14 @@ import svgr from "vite-plugin-svgr";
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths(), svgr()],
   server: {
+    middlewareMode: false,
     proxy: {
       "/api": {
-        target: "http://localhost:3000", // Development
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/.well-known": {
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
     },
@@ -17,7 +22,7 @@ export default defineConfig({
   preview: {
     proxy: {
       "/api": {
-        target: "https://din-backend-url.onrender.com", // Production
+        target: "https://din-backend-url.onrender.com",
         changeOrigin: true,
       },
     },

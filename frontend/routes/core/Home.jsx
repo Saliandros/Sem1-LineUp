@@ -10,19 +10,51 @@ import { supabase } from "../../lib/supabaseClient.js";
 export async function clientLoader() {
   try {
     const VITE_API_URL = import.meta.env.VITE_API_URL;
+    
+    if (!VITE_API_URL) {
+      console.error("VITE_API_URL is not set in environment");
+      return { friends: [], collaborations: [], tags: [], posts: [] };
+    }
+
+    console.log("🔵 Home loader starting...");
 
     const [friendsRes, collabRes, tagsRes, postsRes] = await Promise.all([
-      fetchAllUsersAsFriends(),
-      fetch(`${VITE_API_URL}/api/collaborations`).then((res) => res.json()),
-      fetch(`${VITE_API_URL}/api/tags`).then((res) => res.json()),
-      fetch(`${VITE_API_URL}/api/posts`).then((res) => res.json()),
+      fetchAllUsersAsFriends().then(res => {
+        console.log("✅ Friends loaded:", res);
+        return res;
+      }),
+      fetch(`${VITE_API_URL}/api/collaborations`).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+      }).catch(e => {
+        console.error("❌ Collaborations error:", e);
+        return {};
+      }),
+      fetch(`${VITE_API_URL}/api/tags`).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+      }).catch(e => {
+        console.error("❌ Tags error:", e);
+        return {};
+      }),
+      fetch(`${VITE_API_URL}/api/posts`).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+      }).catch(e => {
+        console.error("❌ Posts error:", e);
+        return {};
+      }),
     ]);
-    return {
+    
+    const result = {
       friends: friendsRes || [],
       collaborations: collabRes?.collaborations || [],
       tags: tagsRes?.tags || tagsRes || [],
       posts: postsRes?.posts || postsRes || [],
     };
+    
+    console.log("🟢 Loader result:", result);
+    return result;
   } catch (error) {
     console.error("Error loading home data:", error);
     return { friends: [], collaborations: [], tags: [], posts: [] };
@@ -84,7 +116,8 @@ const getKeywordFromDescription = (desc, genres) => {
 
 export default function Home() {
   const { user } = useAuth();
-  const { friends, collaborations, tags, posts } = useLoaderData();
+  const loaderData = useLoaderData() || {};
+  const { friends = [], collaborations = [], tags = [], posts = [] } = loaderData;
   const [allFriends, setAllFriends] = useState([]);
   const [visiblePosts, setVisiblePosts] = useState(5);
   const { startChat, creatingThread } = useChat(user);
@@ -140,11 +173,16 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (friends && user?.id) {
-      const filteredFriends = friends.filter((f) => f.id !== user.id);
+    console.log("📌 useEffect triggered - friends:", friends, "user:", user?.id);
+    if (friends && friends.length > 0) {
+      const filteredFriends = user?.id 
+        ? friends.filter((f) => f.id !== user.id)
+        : friends;
+      console.log("👥 Setting allFriends:", filteredFriends);
       setAllFriends(filteredFriends);
     } else {
-      setAllFriends(friends || []);
+      console.log("❌ No friends or empty array");
+      setAllFriends([]);
     }
   }, [friends, user?.id]);
 

@@ -58,7 +58,7 @@ const logo = (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="74"
-    height="auto"
+    height="24"
     viewBox="0 0 435 140"
     fill="none"
   >

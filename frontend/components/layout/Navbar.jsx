@@ -21,8 +21,8 @@ const navItems = [
           d="M7.41667 20.0723H4.75C2.54086 20.0723 0.75 18.2814 0.75 16.0723V8.38591C0.75 6.98719 1.48061 5.69008 2.67679 4.96512L8.67679 1.32875C9.95105 0.556476 11.5489 0.556476 12.8232 1.32875L18.8232 4.96512C20.0194 5.69008 20.75 6.98719 20.75 8.38591V16.0723C20.75 18.2814 18.9591 20.0723 16.75 20.0723H14.0833M7.41667 20.0723V15.6278C7.41667 13.7869 8.90905 12.2945 10.75 12.2945C12.5909 12.2945 14.0833 13.7869 14.0833 15.6278V20.0723M7.41667 20.0723H14.0833"
           stroke="white"
           strokeWidth="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     ),
@@ -48,7 +48,7 @@ const navItems = [
           d="M14.834 21V15C14.834 13.8954 13.9386 13 12.834 13H10.834C9.72941 13 8.83398 13.8954 8.83398 15V21"
           stroke="white"
           strokeWidth="1.5"
-          stroke-miterlimit="16"
+          strokeMiterlimit="16"
         />
         <path
           d="M21.8183 9.36418L20.1243 3.43517C20.0507 3.17759 19.8153 3 19.5474 3H15.5L15.9753 8.70377C15.9909 8.89043 16.0923 9.05904 16.2532 9.15495C16.6425 9.38698 17.4052 9.81699 18 10C19.0158 10.3125 20.5008 10.1998 21.3465 10.0958C21.6982 10.0526 21.9157 9.7049 21.8183 9.36418Z"
@@ -84,15 +84,15 @@ const navItems = [
           d="M8 12H12M16 12H12M12 12V8M12 12V16"
           stroke="white"
           strokeWidth="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
         <path
           d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
           stroke="white"
           strokeWidth="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     ),
@@ -104,7 +104,7 @@ const navItems = [
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        Width="22"
+        width="22"
         height="22"
         viewBox="0 0 22 22"
         fill="none"
@@ -113,8 +113,8 @@ const navItems = [
           d="M10.75 20.75C16.2728 20.75 20.75 16.2728 20.75 10.75C20.75 5.22715 16.2728 0.75 10.75 0.75C5.22715 0.75 0.75 5.22715 0.75 10.75C0.75 12.5714 1.23697 14.2791 2.08782 15.75L1.25 20.25L5.75 19.4122C7.22087 20.263 8.92856 20.75 10.75 20.75Z"
           stroke="white"
           strokeWidth="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     ),

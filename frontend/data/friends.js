@@ -66,19 +66,34 @@ export async function fetchAllUsersAsFriends() {
       return [];
     }
 
+    console.log("Current user ID:", user.id);
+
     // Hent alle connections hvor brugeren er en del af OG status er 'accepted'
-    const { data: connections, error: connectionsError } = await supabase
+    // Split into two separate queries for better RLS compatibility
+    const { data: connections1, error: connectionsError1 } = await supabase
       .from("connections")
       .select("*")
-      .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+      .eq("user_id_1", user.id)
       .eq("status", "accepted");
 
-    if (connectionsError) {
-      console.error("Error fetching connections:", connectionsError);
-      return [];
+    const { data: connections2, error: connectionsError2 } = await supabase
+      .from("connections")
+      .select("*")
+      .eq("user_id_2", user.id)
+      .eq("status", "accepted");
+
+    if (connectionsError1) {
+      console.error("Error fetching connections (user_id_1):", connectionsError1);
+    }
+    if (connectionsError2) {
+      console.error("Error fetching connections (user_id_2):", connectionsError2);
     }
 
+    const connections = [...(connections1 || []), ...(connections2 || [])];
+    console.log("Found connections:", connections);
+
     if (!connections || connections.length === 0) {
+      console.log("No connections found");
       return [];
     }
 
@@ -86,6 +101,8 @@ export async function fetchAllUsersAsFriends() {
     const friendIds = connections.map(conn => 
       conn.user_id_1 === user.id ? conn.user_id_2 : conn.user_id_1
     );
+
+    console.log("Friend IDs:", friendIds);
 
     // Hent profil information for alle venner
     const { data: profiles, error: profilesError } = await supabase
