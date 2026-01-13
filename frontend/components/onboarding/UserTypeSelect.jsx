@@ -1,37 +1,8 @@
-/**
- * UserTypeSelect.jsx - Onboarding Step 2
- * =======================================
- * FORMÅL: Vælg bruger type (musician vs service-provider)
- * 
- * BRUGER TYPER:
- * - 'musician': Musikere der søger samarbejder og services
- * - 'service-provider': Folk der tilbyder services til musikere
- *   (producers, sound engineers, fotografer, etc.)
- * 
- * UI DESIGN:
- * - To store kort med hover effekt
- * - Selected state med gul border (brand color)
- * - Checkmark animation når valgt
- * - Continue knap disabled indtil valg
- * 
- * STATE MANAGEMENT:
- * - userType state er i parent component (GetStartedRoute)
- * - Vi modtager setUserType som prop til at opdatere
- * - Controlled component pattern
- * 
- * PROPS:
- * - userType: Current selected value
- * - setUserType: Setter function
- * - onContinue: Callback når Continue klikkes
- * 
- * HVORFOR VIGTIGT:
- * user_type gemmes i profiles table og bruges til:
- * - Filtrering af content
- * - Personalisering af features
- * - Matchmaking algoritmer
- * 
- * LAVET AF: Jimmi Larsen
- */
+// step 2: frontend/components/onboarding/UserTypeSelect.jsx
+// denne komponent bruges i onboarding flowet til at vælge bruger type
+// enten musiker eller service udbyder (men da den blev lavet forstod jeg det som musikinteresseret)
+// vi har derfor ikke service udbyder funktionalitet hvor man for den anden version af
+//UserInformation.jsx
 
 import React from "react";
 

@@ -1,47 +1,16 @@
-/**
- * threads.js - Chat Threads API Routes
- * =====================================
- * FORMÅL: Håndter alle operationer relateret til chat threads
- * 
- * HVAD ER EN THREAD?
- * En thread er en chat samtale mellem 2+ personer
- * threads tabel indeholder metadata (hvornår oprettet, af hvem, gruppe navn osv)
- * thread_participants tabel linker brugere til threads (many-to-many relation)
- * 
- * ENDPOINTS I DENNE FIL:
- * - POST /api/threads - Opret ny thread
- * - GET /api/threads/user/:userId - Hent alle threads for en bruger
- * - GET /api/threads/:threadId - Hent specifik thread med deltagere
- * - PUT /api/threads/:threadId - Opdater thread (gruppe navn/billede)
- * - DELETE /api/threads/:threadId - Slet thread
- * 
- * AUTHENTICATION:
- * Alle endpoints kræver authenticate middleware
- * req.user indeholder logged in bruger info
- * 
- * DATABASE STRUKTUR:
- * threads table:
- *   - thread_id (UUID, primary key)
- *   - created_by_user_id (UUID, foreign key til profiles)
- *   - created_at (timestamp)
- *   - group_name (text, optional)
- *   - group_image (text URL, optional)
- * 
- * thread_participants table:
- *   - thread_id (UUID, foreign key)
- *   - user_id (UUID, foreign key)
- *   - joined_at (timestamp)
- * 
- * LAVET AF: Jimmi Larsen
- */
+// Route handler for threads
+// Lavet af Jimmi Larsen
+// handterer oprettelse, hentning og sletning af chat threads
+
+// en thread kan være en 1-til-1 chat eller en gruppechat
 
 import express from "express";
 import { supabase } from "../supabaseClient.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, optionalAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get all threads
+// GET /api/threads - Hent alle threads (optional auth)
 router.get("/", optionalAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -130,43 +99,7 @@ router.get("/user/:userId", optionalAuth, async (req, res) => {
   }
 });
 
-// Create thread (1-to-1 or group)
-/**
- * POST /api/threads - Opret ny thread
- * ====================================
- * FORMÅL: Opret en ny chat thread med deltagere
- * 
- * REQUEST BODY:
- * {
- *   participant_ids: [UUID, UUID, ...],  // Array af bruger IDer (ekskl. creator)
- *   group_name: String (optional)        // Kun for gruppe chats
- * }
- * 
- * FLOW:
- * 1. Validér at der er mindst én deltager udover creator
- * 2. Insert ny row i threads table med creator ID
- * 3. Insert rows i thread_participants for alle deltagere (inkl. creator)
- * 4. Return det oprettede thread objekt
- * 
- * TRANSACTION PATTERN:
- * Vi bruger ikke eksplicit transaction her, men Supabase håndterer det
- * Hvis thread_participants insert fejler, threads row bliver ikke committed
- * 
- * RESPONSE:
- * {
- *   thread: {
- *     thread_id: UUID,
- *     created_by_user_id: UUID,
- *     created_at: Timestamp,
- *     group_name: String | null,
- *     participants: [UUID, ...]
- *   }
- * }
- * 
- * ERROR CASES:
- * - 400: Mangler participant_ids
- * - 500: Database fejl
- */
+// Create thread
 router.post("/", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -211,6 +144,8 @@ router.post("/", authenticate, async (req, res) => {
       }))
     ];
 
+    // Insert participants
+    // Insert rows in thread_participants table for all participants including creator
     const { error: participantsError } = await supabase
       .from("thread_participants")
       .insert(participantsToAdd);

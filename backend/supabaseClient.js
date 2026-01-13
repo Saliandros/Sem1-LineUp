@@ -1,3 +1,7 @@
+// File: backend/supabaseClient.js
+// Supabase Client Instance for Backend
+
+// Purpose: Centralized Supabase client for backend use
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 dotenv.config();

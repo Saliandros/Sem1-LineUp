@@ -1,3 +1,9 @@
+// File: frontend/components/chat/Chat.jsx
+// denne fil indeholder chat komponenter: beskeder, beskedliste og input felt
+
+// det er denne fil der bruges i ChatPage.jsx til at vise chat interfacet
+// og den bruger data fra useChat hooket og messages/friends data filerne
+
 import React from "react";
 
 function Message({ type = "user", children, avatar, showAvatar, senderName }) {
@@ -156,6 +162,10 @@ function ChatInput({ onSendMessage }) {
     setShowMenu(false);
   };
 
+  // denne del er til at håndtere pop-up menuen for vedhæftninger
+  // men er kun delvist implementeret
+  // man kan ikke rigtig sende filer endnu
+  
   return (
     <div className="relative px-4 py-3 bg-white border-t border-gray-200">
       {/* Pop-up menu */}

@@ -1,65 +1,27 @@
 /**
- * api.js - Frontend API Service Layer
- * ====================================
- * FORMÅL: Centraliseret data fetching med Supabase client
+ * api.js - Frontend Data Layer
+ * ==============================
+ * FORMÅL: Centraliseret Supabase kommunikation
  * 
- * ARKITEKTUR PATTERN:
- * Dette er "Data Layer" / "Service Layer" pattern:
- * - Components kalder api.js functions
- * - api.js håndterer al Supabase kommunikation
- * - Centraliseret error handling
- * - Consistent response format
- * 
- * HVORFOR DETTE PATTERN?
- * ✅ Components behøver ikke kende Supabase details
- * ✅ Error handling ét sted
- * ✅ Nem at teste (kan mocke api.js)
- * ✅ Nem at skifte backend (kun ændre api.js)
- * ✅ Type safety og documentation
+ * PATTERN: Service Layer
+ * • Components → api.js → Supabase/Backend
+ * • Centraliseret error handling
+ * • Nem at mocke til tests
  * 
  * ERROR HANDLING:
- * Custom ApiError class:
- * - Extends Error med code og details
- * - handleSupabaseError() wrapper
- * - Throw errors som kan catches i components
+ * • ApiError class med code + details
+ * • PGRST116 = "not found" (ignorer den)
  * 
- * AUTH HELPERS:
- * - getCurrentUser(): Hent current auth user
- * - getSession(): Hent current session
- * - getCurrentUserProfile(): Hent profil for current user
+ * SECTIONS:
+ * • Auth (getCurrentUser, getSession)
+ * • Profiles (getCurrentUserProfile, updateProfile)
+ * • Connections (getConnections, createConnection)
+ * • Posts, Threads, Messages
  * 
- * API SECTIONS:
- * Organiseret i sections med comments:
- * - Auth Helpers
- * - Profile API
- * - Posts API  
- * - Connections API
- * - Collaborations API
- * - Messages API
- * - Threads API
- * Etc.
- * 
- * SUPABASE CLIENT USAGE:
- * Alle functions bruger supabase client:
- * const { data, error } = await supabase.from('table').select()
- * 
- * VIGTIGT:
- * Tjek error.code === 'PGRST116' for "not found"
- * Dette er ikke en fejl, bare tomt resultat
- * 
- * ENVIRONMENT:
- * API_BASE bruges til backend REST calls (optional)
- * Default: http://localhost:3000
- * 
- * LAVET AF: Jimmi Larsen & Alle (forskellige endpoints)
+ * LAVET AF: Jimmi Larsen
  */
 
 import { supabase } from "./supabaseClient";
-
-/**
- * API Service using Supabase client
- * Centralized data fetching with error handling
- */
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -67,8 +29,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 // ERROR HANDLING
 // ============================================
 
-// Custom error class for API errors
-// Giver mere information end standard Error
+// ApiError: Custom error med code + details
 export class ApiError extends Error {
   constructor(message, code, details) {
     super(message);
@@ -78,8 +39,7 @@ export class ApiError extends Error {
   }
 }
 
-// Helper til at håndtere Supabase errors
-// Throw ApiError hvis der er en error
+// handleSupabaseError: Throw ApiError hvis error findes
 function handleSupabaseError(error) {
   if (error) {
     throw new ApiError(
@@ -94,10 +54,7 @@ function handleSupabaseError(error) {
 // AUTH HELPERS
 // ============================================
 
-/**
- * Get current authenticated user
- * Returnerer null hvis ikke logged in
- */
+// getCurrentUser: Hent auth user (null hvis logged out)
 export async function getCurrentUser() {
   const {
     data: { user },
@@ -107,9 +64,7 @@ export async function getCurrentUser() {
   return user;
 }
 
-/**
- * Get current session
- */
+// getSession: Hent Supabase session
 export async function getSession() {
   const {
     data: { session },
@@ -119,14 +74,11 @@ export async function getSession() {
   return session;
 }
 
-/*===============================================
-=          PROFILE API           =
-===============================================*/
+// ===========================================
+// PROFILE API
+// ===========================================
 
-/*===============================================
-=          Get profile by user ID           =
-===============================================*/
-
+// getCurrentUserProfile: Hent egen profil
 export async function getCurrentUserProfile() {
   const user = await getCurrentUser();
 
@@ -147,10 +99,7 @@ export async function getCurrentUserProfile() {
   return data;
 }
 
-/*===============================================
-=          Get profile by user ID           =
-===============================================*/
-
+// getProfileById: Hent profil for specifik user ID
 export async function getProfileById(userId) {
   const { data, error } = await supabase
     .from("profiles")
@@ -165,9 +114,7 @@ export async function getProfileById(userId) {
   return data;
 }
 
-/**
- * Update current user's profile
- */
+// updateProfile: Opdater current user profil (upsert)
 export async function updateProfile(profileData) {
   const user = await getCurrentUser();
 
@@ -189,9 +136,7 @@ export async function updateProfile(profileData) {
   return data;
 }
 
-/**
- * Upload profile image to Supabase Storage
- */
+// uploadProfileImage: Upload til Supabase Storage + opdater profil
 export async function uploadProfileImage(file) {
   const user = await getCurrentUser();
 
@@ -221,9 +166,7 @@ export async function uploadProfileImage(file) {
   return publicUrl;
 }
 
-/**
- * Get all profiles (for browsing)
- */
+// getAllProfiles: Hent alle profiler (til browsing, limit 50)
 export async function getAllProfiles(limit = 50) {
   const { data, error } = await supabase
     .from("profiles")
@@ -234,9 +177,7 @@ export async function getAllProfiles(limit = 50) {
   return data || [];
 }
 
-/**
- * Search profiles by displayname only
- */
+// searchProfiles: Søg efter displayname (ILIKE, limit 20)
 export async function searchProfiles(query) {
   if (!query || query.trim().length === 0) {
     return [];
@@ -255,13 +196,11 @@ export async function searchProfiles(query) {
   return data || [];
 }
 
-/*===============================================
-=          CONNECTIONS API           =
-===============================================*/
+// ===========================================
+// CONNECTIONS API  
+// ===========================================
 
-/**
- * Get all connections for current user (only accepted ones)
- */
+// getConnections: Hent accepted connections for current user
 export async function getConnections() {
   const { data, error } = await supabase
     .from("connections")
@@ -273,10 +212,7 @@ export async function getConnections() {
   return data || [];
 }
 
-/**
- * Check if connected with a user
- * Returns the connection object if it exists, null otherwise
- */
+// checkConnection: Tjek om connected med specifik user (ordered pair logic)
 export async function checkConnection(userId) {
   const user = await getCurrentUser();
   if (!user) return null;
@@ -299,9 +235,7 @@ export async function checkConnection(userId) {
   return data;
 }
 
-/**
- * Create a connection request with another user
- */
+// createConnection: Send friend request (via backend API)
 export async function createConnection(userId) {
   const user = await getCurrentUser();
   if (!user) {
@@ -341,9 +275,7 @@ export async function createConnection(userId) {
   return connection;
 }
 
-/**
- * Accept a connection request
- */
+// acceptConnection: Accepter friend request (PATCH backend)
 export async function acceptConnection(connectionId) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -370,9 +302,7 @@ export async function acceptConnection(connectionId) {
   return connection;
 }
 
-/**
- * Reject a connection request
- */
+// rejectConnection: Afvis friend request (PATCH backend)
 export async function rejectConnection(connectionId) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -398,9 +328,7 @@ export async function rejectConnection(connectionId) {
   return true;
 }
 
-/**
- * Get pending connection requests (received by current user)
- */
+// getPendingRequests: Hent pending requests modtaget af current user
 export async function getPendingRequests() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -427,9 +355,7 @@ export async function getPendingRequests() {
   return requests;
 }
 
-/**
- * Delete a connection
- */
+// deleteConnection: Slet connection (DELETE backend med auth)
 export async function deleteConnection(connectionId) {
   // Get session token for authorization
   const { data: { session } } = await supabase.auth.getSession();

@@ -1,5 +1,14 @@
+// step 3: frontend/components/onboarding/UserInformation.jsx
+// denne komponent bruges i onboarding flowet til at indsamle bruger information
+// som navn, telefonnummer, fødselsdato og by
+
+// uheldigvis har vi ikke virksomheds versionen af denne fil
+// som også er vist i figma filen
+
 import React from 'react';
 
+// Country codes data
+// der faktisk skifter lidt i validering af telefonnumre alt efter land
 const countryCodes = [
   { code: '+45', country: 'DK', flag: '🇩🇰' },
   { code: '+1', country: 'US', flag: '🇺🇸' },
@@ -37,7 +46,8 @@ export function UserInformation({ userInfo, onChange }) {
   const isValidPhone = (phone, countryCode) => {
     if (!phone) return false;
     const cleanPhone = phone.replace(/\s/g, '');
-    
+
+    // kan vi se på landekoden og validere derefter
     switch (countryCode) {
       case '+45': // Denmark - 8 digits
         return /^\d{8}$/.test(cleanPhone);

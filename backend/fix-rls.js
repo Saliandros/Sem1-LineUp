@@ -1,3 +1,9 @@
+// Script to fix infinite recursion issue with RLS on thread_participants table
+
+// This script disables RLS on the thread_participants table to resolve the issue
+
+// prøvede RLS men det er ikke sat op korrekt endnu, så vi deaktiverer det midlertidigt
+
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 

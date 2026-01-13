@@ -1,13 +1,14 @@
+// step 4: frontend/components/onboarding/Interests.jsx
+
+// denne komponent bruges i onboarding flowet til at vælge brugerens interesser
+// brugeren kan vælge mellem flere foruddefinerede interesser
+// og baseret på valget kan vi tilpasse brugeroplevelsen senere
+
+// denne funktion er i denne version lavet til at blive vist på profil siden
+// på denne måde er det ikke bindende og kun brugeren kan tilpasse sine interesser senere
+
 import React, { useState } from "react";
-/**
- * Interests.jsx
- * Step 4: Multi-select interest intentions for future personalization.
- * Props:
- *  - selectedInterests: array of chosen labels
- *  - onChange: setter to update selection array
- *  - onContinue: proceed (disabled until at least one selected)
- *  - onSkip: allows bypassing without selection
- */
+
 
 const interestOptions = [
   "Connect to fellow musicians",

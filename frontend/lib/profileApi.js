@@ -1,3 +1,11 @@
+// File: frontend/lib/profileApi.js
+// bruges i EditProfile komponenten
+// til at opdatere profil data inklusiv billede upload
+
+// kunne man merge dette med api.js filen?
+// måske men den blev opdaget så sent i forløbet
+// så den får lov at være selvstændig for nu
+
 import { supabase } from "./supabaseClient.js";
 
 export async function updateProfileWithImage(profileData, imageFile = null) {

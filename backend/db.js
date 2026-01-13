@@ -1,3 +1,6 @@
+// File: backend/db.js
+
+// Bruges til at køre raw SQL queries mod PostgreSQL databasen
 import postgres from "postgres";
 
 const connectionString = process.env.DATABASE_URL;

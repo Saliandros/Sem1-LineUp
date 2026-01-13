@@ -1,3 +1,11 @@
+// ChatListItem.jsx
+// denne komponent viser en liste af venner og grupper man kan chatte med
+// den bruges i NewChatPage.jsx til at vælge en ven eller gruppe at starte chat med
+
+// denne komponent kan også bruges i en sidebar til at vise aktive chats
+
+// den for sin data fra filen frontend/data/friends.js
+
 import { useState } from "react";
 import { href, Link, NavLink, useFetcher } from "react-router";
 

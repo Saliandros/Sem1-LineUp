@@ -1,3 +1,9 @@
+// routes/messages.js
+// Routes for managing messages in threads
+// Includes creating, reading, updating, and deleting messages
+// Lavet af Jimmi Larsen
+
+// Import dependencies
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { authenticate } from "../middleware/auth.js";
@@ -82,12 +88,14 @@ router.post("/", authenticate, async (req, res) => {
       created_at: new Date().toISOString(),
     };
 
+    // Insert message into database
     const { data, error } = await supabase
       .from("messages")
       .insert(messageData)
       .select("*")
       .single();
 
+    // Handle insertion error
     if (error) {
       console.error("🔴 Create message error:", error);
       return res.status(500).json({
@@ -126,6 +134,7 @@ router.put("/:messageId", authenticate, async (req, res) => {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
+    // Update message in database
     const { data, error } = await supabase
       .from("messages")
       .update({ message_content, updated_at: new Date().toISOString() })

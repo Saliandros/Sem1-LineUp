@@ -1,3 +1,6 @@
+// Route handler for tags
+// lavet af Mikkel Ruby
+
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { optionalAuth, authenticate } from "../middleware/auth.js";

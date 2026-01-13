@@ -1,94 +1,18 @@
-/**
- * messages.js - Chat Data Layer
- * ==============================
- * FORMÅL: Centraliseret håndtering af alle chat/besked operationer
- * 
- * HVAD ER EN DATA LAYER?
- * Et abstraktionslag mellem komponenter og data sources (backend API/Supabase)
- * Gør det nemt at skifte data source uden at ændre komponenter
- * 
- * ARKITEKTUR BESLUTNING:
- * Denne fil var oprindeligt 100% direkte Supabase queries
- * Vi har konverteret den til at bruge backend API i stedet fordi:
- * 1. Backend validerer bruger tokens server-side (mere sikkert)
- * 2. Backend kan lave komplekse joins og aggregeringer
- * 3. Lettere at debugge med centraliseret logging
- * 4. Konsistent fejlhåndtering på tværs af alle kald
- * 
- * HYBRID APPROACH:
- * Nogle funktioner bruger stadig direkte Supabase (addParticipantsToThread)
- * fordi backend endpoint ikke eksisterer endnu
- * 
- * API BASE URL:
- * Development: http://localhost:3000
- * Production: Sat via VITE_API_URL environment variable
- * 
- * AUTHENTICATION:
- * Alle API kald inkluderer Bearer token i Authorization header
- * Token hentes fra Supabase session
- * 
- * EKSAMENSSPØRGSMÅL:
- * Q: "Hvorfor ikke bare kalde Supabase direkte fra komponenter?"
- * A: "Data layer giver separation of concerns. Komponenter fokuserer på UI,
- *     data layer fokuserer på data fetching. Plus vi kan cache, retry logic,
- *     og centraliseret error handling her."
- */
+// File: frontend/data/messages.js
+// Denne fil håndterer alle besked- og trådrelaterede API-kald og datatransformationer
 
 import { supabase } from "../lib/supabaseClient";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-/**
- * getAuthToken Helper Function
- * =============================
- * FORMÅL: Hent JWT access token fra Supabase session
- * 
- * HVORFOR SKAL VI HAVE TOKEN?
- * Backend kræver authentication for alle beskyttede endpoints
- * JWT token beviser at brugeren er logged in
- * 
- * FLOW:
- * 1. Kald getSession() på Supabase client
- * 2. Udtræk access_token fra session
- * 3. Return token eller null hvis ikke logged in
- * 
- * GENBRUG:
- * Denne funktion kaldes af næsten alle andre funktioner i filen
- * før de laver API kald
- */
+// Hent auth token fra Supabase klienten
+// bruges til at autorisere API kald
 async function getAuthToken() {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token;
 }
 
-// ==================== API CALLS ====================
-
-/**
- * fetchMessages Function
- * ======================
- * FORMÅL: Hent alle beskeder i en chat thread
- * 
- * BACKEND ENDPOINT: GET /api/messages/thread/:threadId
- * 
- * FLOW:
- * 1. Hent auth token
- * 2. Kald backend API med thread ID
- * 3. Backend validerer token og henter beskeder fra database
- * 4. Return array af besked objekter
- * 
- * BESKED OBJEKT STRUKTUR:
- * {
- *   message_id: UUID
- *   thread_id: UUID
- *   user_id: UUID (afsender)
- *   message_content: String
- *   created_at: Timestamp
- * }
- * 
- * ERROR HANDLING:
- * Ved fejl returneres tom array i stedet for at crashe
- * Fejl logges til console for debugging
- */
+// Hent beskeder for en given tråd via backend API
 export async function fetchMessages(threadId) {
   try {
     const token = await getAuthToken();
@@ -97,6 +21,7 @@ export async function fetchMessages(threadId) {
       return [];
     }
 
+    // Fetch beskeder fra backend API
     const response = await fetch(`${API_URL}/api/messages/thread/${threadId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -118,13 +43,17 @@ export async function fetchMessages(threadId) {
 }
 
 // Send en besked via backend API
+// returnerer den oprettede besked data
 export async function sendMessage(threadId, userId, content) {
   try {
+
+    // Hent auth token
     const token = await getAuthToken();
     if (!token) {
       throw new Error("No auth token available");
     }
 
+    // Send besked til backend API
     const response = await fetch(`${API_URL}/api/messages`, {
       method: 'POST',
       headers: {
@@ -211,6 +140,7 @@ export async function getUserGroupThreads(userId) {
       }
       
       // Check antal deltagere via Supabase
+      // det er her vi afgør om det er en gruppechat eller ej
       const { data: participantCount } = await supabase
         .from("thread_participants")
         .select("user_id", { count: "exact" })
@@ -315,6 +245,7 @@ export async function getOrCreateThread(user1Id, user2Id) {
     }
 
     // Ingen eksisterende thread fundet, opret ny via backend
+    // denne del er til at oprette og eller tjekke om der er en eksisterende tråd
     console.log("➕ Creating new thread...");
     const createResponse = await fetch(`${API_URL}/api/threads`, {
       method: 'POST',
@@ -383,6 +314,9 @@ export async function createGroupThread(creatorId, participantIds, groupName = n
 }
 
 // Slet en tråd via backend API
+// Jeg er kommet til at tænke på at denne funktion måske ikke er
+// så heldig grundet at sletning af beskeder kan være problematisk i forhold til databeskyttelse osv.
+// man skulle heller have en "arkiver/deaktiver" funktion i stedet der i frontenden skjuler tråden
 export async function deleteThread(threadId) {
   try {
     const token = await getAuthToken();

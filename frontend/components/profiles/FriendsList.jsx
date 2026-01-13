@@ -9,35 +9,6 @@
  * 3. **Actions**: "Show Profile" og "Start Chat"
  * 4. **Brand Styling**: Gul ring omkring avatars (LineUp brand)
  * 
- * DRAG-TO-SCROLL IMPLEMENTATION:
- * - Mouse down → Gem start position
- * - Mouse move → Beregn hvor langt der er draget
- * - Update container scrollLeft baseret på drag distance
- * - Mouse up → Reset drag state
- * - Tjek drag distance før åbning af menu (undgå accidental clicks)
- * 
- * STATE MANAGEMENT:
- * - isDragging: Boolean om user aktivt dragger
- * - startX: Start X position for drag
- * - scrollLeft: Container's scroll position ved drag start
- * - dragDistanceRef: Reference til total drag distance
- * - selectedFriend: Hvilken ven har åben menu
- * 
- * PROPS:
- * - friends: Array af ven objekter
- * - onFriendClick: Callback når "Start Chat" klikkes
- * - creatingThread: Boolean loading state
- * 
- * DESIGN NOTES:
- * - Gul ring: Brand identity fra design system
- * - Cursor changes: grab → grabbing under drag
- * - Smooth scroll når ikke dragging
- * - Hidden scrollbar for cleaner look
- * 
- * MOBILE SUPPORT:
- * - Touch events ikke implementeret (kun mouse)
- * - Native touch scroll virker via overflow-x-auto
- * 
  * LAVET AF: Omar Gaal & Hani Zaghmout (styling), Jimmi Larsen (chat integration)
  */
 

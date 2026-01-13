@@ -1,3 +1,9 @@
+// Hook to manage chat threads
+// et hook til at håndtere chat threads
+
+// hvad er et hook?
+// Et hook er en specialfunktion i React, der tillader dig at "hooke" ind i Reacts state og livscyklus funktioner fra funktionelle komponenter. Hooks starter altid med "use", som f.eks. useState eller useEffect. Du kan også lave dine egne hooks, som denne useChat hook, for at genbruge logik på tværs af komponenter.
+
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { getOrCreateThread } from "../data/messages.js";

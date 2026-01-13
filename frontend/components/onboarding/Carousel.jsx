@@ -1,15 +1,12 @@
+// Carousel.jsx
+// denne fil indeholder en Carousel komponent til onboarding skærmen
+// den viser slides med billeder og tekst samt navigation knapper og prikker
+// den bruger Tailwind CSS til styling og animationer
+
+// den vises kun når brugeren ikke har fuldført onboarding og derfor rammes af /GetStartedPage.jsx
+
+// step 0 i onboarding er Carousel med info om appen
 import React from "react";
-/**
- * Carousel.jsx
- * Lightweight looping carousel used for the marketing intro (step 0).
- * Props:
- *  - slides: [{ title, image }]
- *  - currentSlide: index used for positioning
- *  - isTransitioning: enables/disables CSS transition for seamless looping
- *  - onPrev/onNext: navigation handlers
- *  - onDot: jump directly to an index (dot indicator)
- *  - onGetStarted: callback to enter onboarding steps
- */
 
 export function Carousel({
   slides,

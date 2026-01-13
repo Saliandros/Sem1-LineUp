@@ -1,3 +1,7 @@
+// denne fil bruges til at hente venner og grupper fra supabase
+// det er også denne fil der henter venner via connections API'et
+// og dens data bruges også i FriendsList komponenten og NewChat komponenten
+// samt addFriendToGroup funktionaliteten
 import { supabase } from "../lib/supabaseClient";
 
 // Reuse the shared Supabase client instance to avoid multiple client warnings
@@ -43,6 +47,9 @@ export async function fetchGroupChats() {
 }
 
 // Hent alle venner (connections) for den nuværende bruger
+
+// denne funktion ville jeg gerne have lavet om til realtime
+// så den hentede online venner dynamisk
 export async function fetchAllUsersAsFriends() {
   console.log("🚀 fetchAllUsersAsFriends called");
   try {
@@ -132,6 +139,7 @@ export async function fetchAllUsersAsFriends() {
 }
 
 // Opret et map over vennernes navne
+// et map er et objekt hvor nøglerne er bruger ID'er og værdierne er brugerens navn
 export async function getFriendsMap() {
   const friends = await fetchAllUsersAsFriends();
   return Object.fromEntries(

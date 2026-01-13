@@ -1,18 +1,21 @@
+// step 5: frontend/components/onboarding/Subscription.jsx
+
+// det sidste step i onboarding flowet hvor brugeren vælger abonnement
+// og opretter sin konto med email og password
+// herefter bliver al onboarding data gemt i brugerens profil i databasen
+
+// det er også her vi håndterer oprettelse af kontoen via AuthContext og at vi går fra
+
+// da vi ikke har en betalingsgateway integreret i denne version
+// så simulerer vi blot et subskriptionsvalg men kontoen oprettes uanset hvad
+
+// denne komponent har også en anden funktion der hedder OnboardingComplete
+// som gør at en ny enhed aldrig vil blive mødt af Get Started onboarding flowet igen
+// de kan stadig logge ud og registrere en ny konto, men ikke blive tvunget igennem onboarding igen
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { updateProfile } from "../../lib/api";
-/**
- * Subscription.jsx
- * Step 5: Present plan choices (monthly/yearly) before finalizing onboarding.
- * Creates the user account and saves all onboarding data.
- * Props:
- *  - email, password: credentials from SignupForm
- *  - userType, userInfo, selectedInterests: collected data
- *  - onStartTrial(plan): called with selectedPlan when user starts trial
- *  - onSkip(): skip subscription and finish onboarding
- *  - setOnboardingComplete (optional): if true, sets onboarding_complete flag in localStorage
- * Internal state: selectedPlan ('monthly' | 'yearly'). Defaults to yearly.
- */
+
 import logoLineUpDark from "../../assets/icons/logoLineUp-Dark.svg";
 
 export function Subscription({ email, password, userType, userInfo, selectedInterests, onStartTrial, onSkip, setOnboardingComplete = false }) {

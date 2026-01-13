@@ -53,7 +53,7 @@
  * - Validation errors: 400
  * - Server errors: 500
  * 
- * LAVET AF: Omar Gaal & Jimmi Larsen
+ * LAVET AF: Hani, Omar & Jimmi Larsen
  */
 
 import express from "express";
@@ -83,6 +83,8 @@ router.get("/", optionalAuth, async (req, res) => {
 });
 
 // Search profiles by displayname only
+// Ny funktion lavet af Jimmi Larsen
+// tillader at søge efter brugere baseret på deres displayname
 router.get("/search", optionalAuth, async (req, res) => {
   try {
     const { q } = req.query;
@@ -91,6 +93,7 @@ router.get("/search", optionalAuth, async (req, res) => {
       return res.json({ profiles: [] });
     }
 
+// trim gør at vi fjerner whitespace i starten og slutningen af søgestrengen
     const searchTerm = `%${q.trim()}%`;
     
     const { data, error } = await supabase
@@ -287,6 +290,7 @@ router.put("/", authenticate, upload.single("user_image"), async (req, res) => {
 });
 
 // Delete profile
+// tros vi ikke bruger denne funktionalitet i appen, så er den her hvis vi får brug for det senere
 router.delete("/:userId", authenticate, async (req, res) => {
   try {
     const { userId } = req.params;

@@ -1,3 +1,6 @@
+// bruges i både EditProfile og profile.jsx
+// til at hente profil data fra backend
+
 import { useEffect, useState } from "react";
 import { getCurrentUserProfile, getProfileById } from "../lib/api";
 

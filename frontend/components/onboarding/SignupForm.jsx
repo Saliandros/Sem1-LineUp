@@ -1,37 +1,17 @@
-/**
- * SignupForm.jsx - Onboarding Step 1
- * ===================================
- * FORMÅL: Indsamle email og password credentials til ny bruger
- * 
- * VIGTIG DETALJE:
- * Denne komponent OPRETTER IKKE brugeren!
- * Den indsamler kun credentials og sender dem videre til parent.
- * Selve bruger oprettelsen sker i GetStartedRoute efter alle onboarding steps.
- * 
- * VALIDATION:
- * - Email: Standard email regex validation
- * - Password: Minimum 8 tegn (Supabase krav)
- * - Repeat Password: Skal matche password
- * - Real-time feedback med grønne/røde ikoner
- * 
- * UI PATTERNS:
- * - "Touched" state tracker om felt har været fokuseret
- * - Validation vises kun efter felt er touched (bedre UX)
- * - Visual feedback med checkmarks og x'er
- * - Disabled continue knap indtil valid
- * 
- * BROWSER AUTOFILL HACK:
- * Vi bruger dummy fields og readonly attribut for at forhindre
- * browser autofill der kan forstyrre onboarding flowet
- * 
- * PROPS:
- * - onContinue(email, password): Callback med credentials når valid
- * 
- * FLOW:
- * User indtaster → Validation → Continue → Parent modtager credentials
- * 
- * LAVET AF: Jimmi Larsen
- */
+// step 1: frontend/components/onboarding/SignupForm.jsx
+// denne komponent er til signup formen i onboarding flowet
+// den håndterer email, password og gentag password felter
+// med validering og visuel feedback
+
+// den sender data op til forældre komponenten via onContinue prop
+// derfor oprettes brugeren ikke endnu
+
+// filens sti: frontend/components/onboarding/SignupForm.jsx
+// og er den første del af onboarding flowet som både bruges i getstarted og register page
+
+// denne komponent har en funktion til at aktivere Onboarding Complete i localStorage
+// som gør at brugeren aldrig bliver tvunget til onboarding igen efter de har gennemført det første gang
+// det aktivers når man klikker på "already have an account? log in" knappen
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router";

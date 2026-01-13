@@ -1,3 +1,7 @@
+// dette hook bruges ikke længere
+// det er erstattet da vi gik væk fra localStorage til profil data
+
+// var lavet af Hani
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "profileData";
